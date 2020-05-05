@@ -10,7 +10,7 @@
 #include <QDir>
 #include <QFileDialog>
 
-//#include <QDebug>
+#include <QDebug>
 
 MainWindow::MainWindow(QWidget *parent)
     : QMainWindow(parent)
@@ -22,30 +22,65 @@ MainWindow::MainWindow(QWidget *parent)
     ///=============Настройка директорий================
     //==================================================
     ///
-    QString dirname = QDir::currentPath();
-    this->rootFolder=dirname;
-    ui -> statusbar -> showMessage(dirname);
-    ui -> statusbar -> update();
-
+    {
+        QString dirname = QDir::currentPath();
+        rootFolder=dirname;
+        ui -> statusbar -> showMessage(dirname);
+        ui -> statusbar -> update();
+    }
 
     //==================================================
     ///======Настройка взаимодействий с графиками=======
     //==================================================
     ///
+    {
     ui -> Axes_plane -> setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
-    ui -> Axes_curves-> setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
-
+    ui -> Axes_curves-> setInteractions(QCP::iSelectPlottables);
+   // ui -> Axes_curves-> setInteractions(QCP::iRangeDrag | QCP::iRangeZoom );
     setAxesSize(ui->Axes_plane, 600, 600);
     setAxesSize(ui->Axes_curves, 600, 600);
 
     QObject::connect(ui->Axes_curves, SIGNAL(axisDoubleClick(QCPAxis*,QCPAxis::SelectablePart,QMouseEvent*)),
-                     this, SLOT(axisLabelDoubleClick(QCPAxis*,QCPAxis::SelectablePart)));
-    QObject::connect(ui->Axes_plane, SIGNAL(axisDoubleClick(QCPAxis*,QCPAxis::SelectablePart,QMouseEvent*)),
-                     this, SLOT(axisLabelDoubleClick(QCPAxis*,QCPAxis::SelectablePart)));
+                     this           , SLOT(axisLabelDoubleClick(QCPAxis*,QCPAxis::SelectablePart)));
+    QObject::connect(ui->Axes_plane , SIGNAL(axisDoubleClick(QCPAxis*,QCPAxis::SelectablePart,QMouseEvent*)),
+                     this           , SLOT(axisLabelDoubleClick(QCPAxis*,QCPAxis::SelectablePart)));
 
     QObject::connect(ui->Axes_curves, SIGNAL(legendDoubleClick(QCPLegend*,QCPAbstractLegendItem*,QMouseEvent*)),
-                     this, SLOT(legendDoubleClick(QCPLegend*,QCPAbstractLegendItem*)));
+                     this           , SLOT(legendDoubleClick  (QCPLegend*,QCPAbstractLegendItem*)));
 
+
+    QObject::connect(ui->toolBox, SIGNAL(currentChanged(int)),
+                     this       , SLOT  (toolIsSwitched(int)));
+    QObject::connect(ui->tabGraphs, SIGNAL(currentChanged(int)),
+                     this       , SLOT  (tabIsSwitched(int)));
+    }
+
+    QObject::connect(ui-> axXLim_min, SIGNAL(editingFinished()),
+                     this           , SLOT(setCurveRange()));
+    QObject::connect(ui-> axYLim_min, SIGNAL(editingFinished()),
+                     this           , SLOT(setCurveRange()));
+    QObject::connect(ui-> axXLim_max, SIGNAL(editingFinished()),
+                     this           , SLOT(setCurveRange()));
+    QObject::connect(ui-> axYLim_max, SIGNAL(editingFinished()),
+                     this           , SLOT(setCurveRange()));
+
+    QObject::connect(ui-> MaxVal_pointX , SIGNAL(editingFinished()),
+                     this               , SLOT(updateCurves()));
+    QObject::connect(ui-> MaxVal_pointX , SIGNAL(editingFinished()),
+                     this               , SLOT(updatePlane()));
+    QObject::connect(ui-> MaxVal_pointY , SIGNAL(editingFinished()),
+                     this               , SLOT(updateCurves()));
+    QObject::connect(ui-> MaxVal_pointY , SIGNAL(editingFinished()),
+                     this               , SLOT(updatePlane()));
+    QObject::connect(ui-> MaxVal_pointZ , SIGNAL(editingFinished()),
+                     this               , SLOT(updateCurves()));
+    QObject::connect(ui-> MaxVal_pointZ , SIGNAL(editingFinished()),
+                     this               , SLOT(updatePlane()));
+
+    QObject::connect(ui-> ValueAtPoint , SIGNAL(editingFinished()),
+                     this               , SLOT(updateCurves()));
+    QObject::connect(ui-> ValueAtPoint , SIGNAL(editingFinished()),
+                     this               , SLOT(updatePlane()));
 
 
 
@@ -53,131 +88,147 @@ MainWindow::MainWindow(QWidget *parent)
     ///=========Инициализация работы слайдеров==========
     //==================================================
     ///
-    setSliders();
+    {
+        setSliders();
 
-    QObject::connect(ui->X_Slider, SIGNAL(valueChanged(int)),
-                     ui->X_val   , SLOT  (setNum(int)));
-    QObject::connect(ui->Y_Slider, SIGNAL(valueChanged(int)),
-                     ui->Y_val   , SLOT  (setNum(int)));
-    QObject::connect(ui->Z_Slider, SIGNAL(valueChanged(int)),
-                     ui->Z_val   , SLOT  (setNum(int)));
+        QObject::connect(ui->X_Slider, SIGNAL(valueChanged(int)),
+                         ui->X_val   , SLOT  (setNum(int)));
+        QObject::connect(ui->Y_Slider, SIGNAL(valueChanged(int)),
+                         ui->Y_val   , SLOT  (setNum(int)));
+        QObject::connect(ui->Z_Slider, SIGNAL(valueChanged(int)),
+                         ui->Z_val   , SLOT  (setNum(int)));
 
-    QObject::connect(ui->X_Slider, SIGNAL(valueChanged(int)),
-                     this        , SLOT  (updateCurves()));
-    QObject::connect(ui->Y_Slider, SIGNAL(valueChanged(int)),
-                     this        , SLOT  (updateCurves()));
-    QObject::connect(ui->Z_Slider, SIGNAL(valueChanged(int)),
-                     this        , SLOT  (updateCurves()));
+        QObject::connect(ui->X_Slider, SIGNAL(valueChanged(int)),
+                         this        , SLOT  (updateCurves()));
+        QObject::connect(ui->Y_Slider, SIGNAL(valueChanged(int)),
+                         this        , SLOT  (updateCurves()));
+        QObject::connect(ui->Z_Slider, SIGNAL(valueChanged(int)),
+                         this        , SLOT  (updateCurves()));
 
-    QObject::connect(ui->X_Slider, SIGNAL(valueChanged(int)),
-                     this        , SLOT  (updatePlane()));
-    QObject::connect(ui->Y_Slider, SIGNAL(valueChanged(int)),
-                     this        , SLOT  (updatePlane()));
-    QObject::connect(ui->Z_Slider, SIGNAL(valueChanged(int)),
-                     this        , SLOT  (updatePlane()));
+        QObject::connect(ui->X_Slider, SIGNAL(valueChanged(int)),
+                         this        , SLOT  (updatePlane()));
+        QObject::connect(ui->Y_Slider, SIGNAL(valueChanged(int)),
+                         this        , SLOT  (updatePlane()));
+        QObject::connect(ui->Z_Slider, SIGNAL(valueChanged(int)),
+                         this        , SLOT  (updatePlane()));
 
-
+    }
 
     //==================================================
     ///====Инициализация работы кнопок переключения=====
     //==================================================
     ///
-    // Выбор плоскости
-    QObject::connect(ui->plane_XY_rb, SIGNAL(clicked()),
-                     this           , SLOT  (updatePlane()));
-    QObject::connect(ui->plane_XZ_rb, SIGNAL(clicked()),
-                     this           , SLOT  (updatePlane()));
-    QObject::connect(ui->plane_YZ_rb, SIGNAL(clicked()),
-                     this           , SLOT  (updatePlane()));
+    {
+        // Выбор плоскости
+        QObject::connect(ui->plane_XY_rb, SIGNAL(clicked()),
+                         this           , SLOT  (updatePlane()));
+        QObject::connect(ui->plane_XZ_rb, SIGNAL(clicked()),
+                         this           , SLOT  (updatePlane()));
+        QObject::connect(ui->plane_YZ_rb, SIGNAL(clicked()),
+                         this           , SLOT  (updatePlane()));
 
-    // Выбор стиля
-    QObject::connect(ui->CMap_rb, SIGNAL(clicked()),
-                     this       , SLOT  (updatePlane()));
-    QObject::connect(ui->ISOCMap_rb, SIGNAL(clicked()),
-                     this           , SLOT  (updatePlane()));
-    QObject::connect(ui->Isodoses_rb, SIGNAL(clicked()),
-                     this           , SLOT  (updatePlane()));
-    // Выбор типа графика
-    QObject::connect(ui->Dz_chB, SIGNAL(stateChanged(int)),
-                     this      , SLOT  (updateCurves()));
-    QObject::connect(ui->Dx_chB, SIGNAL(stateChanged(int)),
-                     this      , SLOT  (updateCurves()));
-    QObject::connect(ui->Dy_chB, SIGNAL(stateChanged(int)),
-                     this      , SLOT  (updateCurves()));
-    QObject::connect(ui->Dz_total_chB, SIGNAL(stateChanged(int)),
-                     this      , SLOT  (updateCurves()));
-
+        // Выбор стиля
+        QObject::connect(ui->CMap_rb, SIGNAL(clicked()),
+                         this       , SLOT  (updatePlane()));
+        QObject::connect(ui->ISOCMap_rb, SIGNAL(clicked()),
+                         this           , SLOT  (updatePlane()));
+        QObject::connect(ui->Isodoses_rb, SIGNAL(clicked()),
+                         this           , SLOT  (updatePlane()));
+        // Выбор типа графика
+        QObject::connect(ui->Dz_chB, SIGNAL(stateChanged(int)),
+                         this      , SLOT  (updateCurves()));
+        QObject::connect(ui->Dx_chB, SIGNAL(stateChanged(int)),
+                         this      , SLOT  (updateCurves()));
+        QObject::connect(ui->Dy_chB, SIGNAL(stateChanged(int)),
+                         this      , SLOT  (updateCurves()));
+        QObject::connect(ui->Dz_total_chB, SIGNAL(stateChanged(int)),
+                         this      , SLOT  (updateCurves()));
+    }
 
     //==================================================
     ///====Ограничения на значения вводимых значений====
     //==================================================
     ///
-    // Set isodose line edits restrictions
-    const int N_lvls=9;
-    QLineEdit* isodose_list[N_lvls] = {ui->isodose_lvl_1,
-                                       ui->isodose_lvl_2,
-                                       ui->isodose_lvl_3,
-                                       ui->isodose_lvl_4,
-                                       ui->isodose_lvl_5,
-                                       ui->isodose_lvl_6,
-                                       ui->isodose_lvl_7,
-                                       ui->isodose_lvl_8,
-                                       ui->isodose_lvl_9 };
-    for(int i=0;i<N_lvls;i++)
     {
-        isodose_list[i]-> setValidator(new QDoubleValidator(0,200,3,this));
+        setLineValidators();
     }
 
+    //==================================================
+    ///===========Задание начальных значений============
+    //==================================================
+    ///
+    {
+        int axXLim_max = 0;
+        sizeX > axXLim_max ? axXLim_max = sizeX : false;
+        sizeY > axXLim_max ? axXLim_max = sizeY : false;
+        sizeZ > axXLim_max ? axXLim_max = sizeZ : false;
+
+        ui-> axXLim_min -> setText(QString::number(0));
+        ui-> axXLim_max -> setText(QString::number(axXLim_max));
+        ui-> axYLim_min -> setText(QString::number(0));
+        ui-> axYLim_max -> setText(QString::number(1.1));
+    }
 
     //==================================================
     ///================Коррекция цвета==================
     //==================================================
     ///
-    // Изменение цветов панелей изодоз (легенда)
-    setColorPanels();
+    {
+        // Изменение цветов панелей изодоз (легенда)
+        setColorPanels();
 
-    QString setBackgroundColor;
-    setBackgroundColor="background-color: rgb( 255, 255, 255);";
-    ui->X_val->setAutoFillBackground(true);
-    ui->X_val->setStyleSheet(setBackgroundColor);
-    ui->Y_val->setAutoFillBackground(true);
-    ui->Y_val->setStyleSheet(setBackgroundColor);
-    ui->Z_val->setAutoFillBackground(true);
-    ui->Z_val->setStyleSheet(setBackgroundColor);
+        QString setBackgroundColor;
+        setBackgroundColor="background-color: rgb( 255, 255, 255);";
+        ui->X_val->setAutoFillBackground(true);
+        ui->X_val->setStyleSheet(setBackgroundColor);
+        ui->Y_val->setAutoFillBackground(true);
+        ui->Y_val->setStyleSheet(setBackgroundColor);
+        ui->Z_val->setAutoFillBackground(true);
+        ui->Z_val->setStyleSheet(setBackgroundColor);
 
+    }
 
     //==================================================
     ///===============Настройка кнопок==================
     //==================================================
     ///
-    QObject::connect(ui->updateIsodoses , SIGNAL(clicked()),
-                     this               , SLOT  (updatePlane()));
-    QObject::connect(ui->actionOpenDoseFile , SIGNAL(triggered()),
-                     this                   , SLOT  (openFile()));
+    {
+        QObject::connect(ui->updateIsodoses , SIGNAL(clicked()),
+                         this               , SLOT  (updatePlane()));
+        QObject::connect(ui->actionOpenDoseFile , SIGNAL(triggered()),
+                         this                   , SLOT  (openFile()));
 
-    //SaveButtons
-    QObject::connect(ui -> actionSave_plane_graph   , SIGNAL(triggered()),
-                     this                           , SLOT  (SavePlane()));
+        //SaveButtons
+        QObject::connect(ui -> actionSave_plane_graph   , SIGNAL(triggered()),
+                         this                           , SLOT  (SavePlane()));
 
-    QObject::connect(ui -> actionSave_curve_graph   , SIGNAL(triggered()),
-                     this                           , SLOT  (SaveCurves()));
+        QObject::connect(ui -> actionSave_curve_graph   , SIGNAL(triggered()),
+                         this                           , SLOT  (SaveCurves()));
 
-    //Задание кнопок переключения режима считывания
-    QObject::connect(ui->actionSRNA, SIGNAL(triggered()),
-                     this          , SLOT  (setFileFormatSRNA()));
+        //Задание кнопок переключения режима считывания
+        QObject::connect(ui->actionSRNA, SIGNAL(triggered()),
+                         this          , SLOT  (setFileFormatSRNA()));
 
-    QObject::connect(ui->actionGEANT4, SIGNAL(triggered()),
-                     this            , SLOT  (setFileFormatGEANT4()));
+        QObject::connect(ui->actionGEANT4, SIGNAL(triggered()),
+                         this            , SLOT  (setFileFormatGEANT4()));
 
-    // Задание кнопок сохранения данных
-    QObject::connect(ui->actionSaveDx, SIGNAL(triggered()),
-                     this            , SLOT  (saveDx()));
-    QObject::connect(ui->actionSaveDy, SIGNAL(triggered()),
-                     this            , SLOT  (saveDy()));
-    QObject::connect(ui->actionSaveDz, SIGNAL(triggered()),
-                     this            , SLOT  (saveDz()));
-    QObject::connect(ui->actionSave_global_D_z, SIGNAL(triggered()),
-                     this            , SLOT  (saveGlobalDz()));
+        // Задание кнопок сохранения данных
+        QObject::connect(ui->actionSaveDx, SIGNAL(triggered()),
+                         this            , SLOT  (saveDx()));
+        QObject::connect(ui->actionSaveDy, SIGNAL(triggered()),
+                         this            , SLOT  (saveDy()));
+        QObject::connect(ui->actionSaveDz, SIGNAL(triggered()),
+                         this            , SLOT  (saveDz()));
+        QObject::connect(ui->actionSave_global_D_z, SIGNAL(triggered()),
+                         this            , SLOT  (saveGlobalDz()));
+
+        QObject::connect(ui->curve_axis_update_btn , SIGNAL(clicked()),
+                         this                      , SLOT  (setCurveRange()));
+        QObject::connect(ui->curve_axis_reset_btn , SIGNAL(clicked()),
+                         this                      , SLOT  (resetCurveRange()));
+
+
+    }
 
 
 }
@@ -192,24 +243,74 @@ MainWindow::~MainWindow()
 //==================================================
 ///===========Настройки окна приложения=============
 //==================================================
-// Слоты: ==========================================
+//
+
+void MainWindow::setLineValidators()
+{
+    //==================================================
+    ///====Ограничения на значения вводимых значений====
+    //==================================================
+    ///
+
+    ui->ValueAtPoint -> setValidator(new QDoubleValidator(0.01, 1000, 2, this));
+
+    ui->MaxVal_pointX-> setValidator(new QIntValidator(0,sizeX-1,this));
+    ui->MaxVal_pointY-> setValidator(new QIntValidator(0,sizeY-1,this));
+    ui->MaxVal_pointZ-> setValidator(new QIntValidator(0,sizeZ-1,this));
+
+
+    int axXLim_max = 0;
+    sizeX > axXLim_max ? axXLim_max = sizeX : false;
+    sizeY > axXLim_max ? axXLim_max = sizeY : false;
+    sizeZ > axXLim_max ? axXLim_max = sizeZ : false;
+
+    double MaxVal = ui->ValueAtPoint -> text().toDouble();
+    double axYLim_max = 0.0105*MaxVal;
+
+    ui-> axXLim_min -> setValidator(new QDoubleValidator(0,axXLim_max,1,this));
+    ui-> axXLim_max -> setValidator(new QDoubleValidator(0,axXLim_max,1,this));
+    ui-> axYLim_min -> setValidator(new QDoubleValidator(0,axYLim_max,1,this));
+    ui-> axYLim_max -> setValidator(new QDoubleValidator(0,axYLim_max,1,this));
+    //ui->axX
+
+    // Set isodose line edits restrictions
+    const int N_lvls=9;
+    QLineEdit* isodose_list[N_lvls] = {ui->isodose_lvl_1,
+                                       ui->isodose_lvl_2,
+                                       ui->isodose_lvl_3,
+                                       ui->isodose_lvl_4,
+                                       ui->isodose_lvl_5,
+                                       ui->isodose_lvl_6,
+                                       ui->isodose_lvl_7,
+                                       ui->isodose_lvl_8,
+                                       ui->isodose_lvl_9 };
+
+
+    for(int i=0;i<N_lvls;i++)
+    {
+        isodose_list[i]-> setValidator(new QDoubleValidator(0,2*MaxVal,3,this));
+    }
+
+
+}
+
 void MainWindow::setSliders()
 {
     ui -> X_Slider ->setMinimum(0);
-    ui -> X_Slider ->setMaximum((this->sizeX)-1);
+    ui -> X_Slider ->setMaximum(sizeX-1);
     ui -> X_Slider ->setSingleStep(1);
 
     ui -> Y_Slider ->setMinimum(0);
-    ui -> Y_Slider ->setMaximum((this->sizeY)-1);
+    ui -> Y_Slider ->setMaximum(sizeY-1);
     ui -> Y_Slider ->setSingleStep(1);
 
     ui -> Z_Slider ->setMinimum(0);
-    ui -> Z_Slider ->setMaximum((this->sizeZ)-1);
+    ui -> Z_Slider ->setMaximum(sizeZ-1);
     ui -> Z_Slider ->setSingleStep(1);
 
-    int X_value = round(0.5*(this->sizeX));
-    int Y_value = round(0.5*(this->sizeY));
-    int Z_value = round(0.5*(this->sizeZ));
+    int X_value = round(0.5*sizeX);
+    int Y_value = round(0.5*sizeY);
+    int Z_value = round(0.5*sizeZ);
 
     ui -> X_val ->setNum(X_value);
     ui -> Y_val ->setNum(Y_value);
@@ -220,46 +321,28 @@ void MainWindow::setSliders()
     ui -> Z_Slider ->setValue(Z_value);
 }
 
-void MainWindow::legendDoubleClick(QCPLegend *legend, QCPAbstractLegendItem *item)
+void MainWindow::toolIsSwitched(int tool)
 {
-  // Rename a graph by double clicking on its legend item
-  Q_UNUSED(legend)
-  if (item) // only react if item was clicked (user could have clicked on border padding of legend where there is no item, then item is 0)
-  {
-    QCPPlottableLegendItem *plItem = qobject_cast<QCPPlottableLegendItem*>(item);
-    bool ok;
-    QString newName = QInputDialog::getText(this, "Change legend label", "New graph name:", QLineEdit::Normal, plItem->plottable()->name(), &ok);
-    if (ok)
-    {
-      plItem->plottable()->setName(newName);
-      legend->parentPlot()->replot();
-      //ui->Axes_plane->replot();
+    int currTab = ui->tabGraphs->currentIndex();
+
+    if (      (tool == 1) && (currTab == 1)){
+        ui->tabGraphs->setCurrentIndex(0);
+    }else if ((tool == 2) && (currTab == 0)){
+        ui->tabGraphs->setCurrentIndex(1);
     }
-  }
+
 }
 
-void MainWindow::axisLabelDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart part)
+void MainWindow::tabIsSwitched(int tab)
 {
+    int currTool = ui->toolBox->currentIndex();
 
-    //QCustomPlot* A = ui->Axes_plane;
-    //QCustomPlot* B = ui->Axes_curves;
-
-  // Set an axis label by double clicking on it
-  if (part == QCPAxis::spAxisLabel) // only react when the actual axis label is clicked, not tick label or axis backbone
-  {
-    bool ok;
-    QString newLabel = QInputDialog::getText(this, "Change axes label", "New axis label:", QLineEdit::Normal, axis->label(), &ok);
-    if (ok)
-    {
-      axis->setLabel(newLabel);
-      axis->parentPlot()->replot();
-      //ui->Axes_plane->replot();
-      //ui->Axes_curves->replot();
+    if (      (tab == 0) && (currTool == 2)){
+        ui->toolBox->setCurrentIndex(1);
+    }else if ((tab == 1) && (currTool == 1)){
+        ui->toolBox->setCurrentIndex(2);
     }
-  }
 }
-
-// Методы: ==========================================
 
 void MainWindow::setColorPanels()
 {
@@ -282,12 +365,9 @@ void MainWindow::setColorPanels()
         isodose_lvl_num[lvl]=(isodose_list[lvl]->text().toDouble())/100;
     }
 
-
-
     QCPColorGradient jetCM;
     jetCM.loadPreset(QCPColorGradient::gpJet);
     jetCM.setLevelCount(1000);
-
 
     QLabel* isodose_lbl_list[N_lvls] = {ui->cmap_lvl_1,
                                         ui->cmap_lvl_2,
@@ -299,21 +379,18 @@ void MainWindow::setColorPanels()
                                         ui->cmap_lvl_8,
                                         ui->cmap_lvl_9 };
 
-    this->colorList = new QRgb[N_lvls];
+    colorList = new QRgb[N_lvls];
     QString setBackgroundColor;
     for (int i=0;i<N_lvls;i++)
     {
-      this->colorList[i] = jetCM.color(isodose_lvl_num[i],QCPRange(0, 1),false);
+      colorList[i] = jetCM.color(isodose_lvl_num[i],QCPRange(0, 1),false);
       setBackgroundColor="background-color: rgb(" +
-              QString::number(qRed  (this->colorList[i])) + ", " +
-              QString::number(qGreen(this->colorList[i])) + ", " +
-              QString::number(qBlue (this->colorList[i])) + ");";
+              QString::number(qRed  (colorList[i])) + ", " +
+              QString::number(qGreen(colorList[i])) + ", " +
+              QString::number(qBlue (colorList[i])) + ");";
       isodose_lbl_list[i]->setAutoFillBackground(true);
       isodose_lbl_list[i]->setStyleSheet(setBackgroundColor);
     }
-    //delete[] colorList;
-    //colorList = nullptr;
-
 }
 
 void MainWindow::setAxesSize(QCustomPlot* axes, int WidthMultiplier, int HeightMultiplier)
@@ -344,7 +421,7 @@ void MainWindow::setAxesSize(QCustomPlot* axes, int WidthMultiplier, int HeightM
 //==================================================
 ///===============Работа с файлами==================
 //==================================================
-// Слоты: ==========================================
+//
 void MainWindow::setFileFormatSRNA()
 {
    bool chB_GEANT4_on = ui->actionGEANT4->isChecked();
@@ -358,7 +435,7 @@ void MainWindow::setFileFormatGEANT4()
 
 void MainWindow::openFile()
 {
-    if (this->loadlock) return;
+    if (loadlock) return;
 
     // Выбор заданной директории
     QString locstr = ui -> statusbar->currentMessage();
@@ -402,22 +479,60 @@ void MainWindow::openFile()
      ui -> statusbar->showMessage("LOADING...");
      ui -> statusbar -> update();
 
-     this->loadlock = true;
+     loadlock = true;
 
      loadNewDoseFile(filename);
-     this->DistributionIsSet=true;
-     this->loadlock = false;
+     DistributionIsSet=true;
+     loadlock = false;
 
      QString qstr_folderName(charfolderName);
-     this->folderLocation=qstr_folderName;
+     folderLocation=qstr_folderName;
 
      ui -> statusbar->showMessage(qstr_folderName);
      ui -> statusbar -> update();
+
+     setLineValidators();
+     int axXLim_max = 0;
+     sizeX > axXLim_max ? axXLim_max = sizeX : false;
+     sizeY > axXLim_max ? axXLim_max = sizeY : false;
+     sizeZ > axXLim_max ? axXLim_max = sizeZ : false;
+     double MaxVal = ui->ValueAtPoint -> text().toDouble();
+     double axYLim_max = 0.0105*MaxVal;
+     ui-> axXLim_min -> setText(QString::number(0));
+     ui-> axXLim_max -> setText(QString::number(axXLim_max));
+     ui-> axYLim_min -> setText(QString::number(0));
+     ui-> axYLim_max -> setText(QString::number(axYLim_max));
 
      setSliders();
 
      updateCurves();
      updatePlane();
+}
+
+void MainWindow::loadNewDoseFile(QString filename)
+{
+    bool FileFormSRNA = ui->actionSRNA->isChecked();
+    bool FileFormGEANT4 = ui->actionGEANT4->isChecked();
+
+    QString FileFormat;
+    if(FileFormSRNA){
+        FileFormat = "SRNA";
+    } else if (FileFormGEANT4){
+        FileFormat = "GEANT4";
+    } else {
+        return;
+    }
+
+    DoseDistr = DoseVector(filename, FileFormat);
+    sizeX = DoseDistr.getXSize();
+    sizeY = DoseDistr.getYSize();
+    sizeZ = DoseDistr.getZSize();
+    doseMaxValue = DoseDistr.getDoseMaxValue();
+
+    doseMaxValPos = DoseDistr.getMaxValPosition();
+    ui->MaxVal_pointX->setText(QString::number(std::get<0>(doseMaxValPos)));
+    ui->MaxVal_pointY->setText(QString::number(std::get<1>(doseMaxValPos)));
+    ui->MaxVal_pointZ->setText(QString::number(std::get<2>(doseMaxValPos)));
 }
 
 void MainWindow::SavePlane()
@@ -466,14 +581,14 @@ void MainWindow::saveDx()
         int Y = ui->Y_val->text().toInt();
         int Z = ui->Z_val->text().toInt();
 
-        QVector<double> x(this->sizeX), Dx(this->sizeX); // initialize with entries 0..100
-        for (int i=0; i<this->sizeX; ++i)
+        QVector<double> x(sizeX), Dx(sizeX); // initialize with entries 0..100
+        for (int i=0; i<sizeX; ++i)
         {
           x[i] = i;
           Dx[i] = (DoseDistr.element(i,Y,Z));
         }
 
-        QString filename = this->folderLocation + "D(x,"+QString::number(Y)+","+QString::number(Z)+").txt";
+        QString filename = folderLocation + "D(x,"+QString::number(Y)+","+QString::number(Z)+").txt";
         printDose2File(filename, "X", Y, Z, x, Dx);
     }
 
@@ -487,13 +602,13 @@ void MainWindow::saveDy()
         //int Y = ui->Y_val->text().toInt();
         int Z = ui->Z_val->text().toInt();
 
-        QVector<double> y(this->sizeY), Dy(this->sizeY); // initialize with entries 0..100
-        for (int i=0; i<this->sizeY; ++i)
+        QVector<double> y(sizeY), Dy(sizeY); // initialize with entries 0..100
+        for (int i=0; i<sizeY; ++i)
         {
           y[i] = i;
           Dy[i] = (DoseDistr.element(X,i,Z)); // let's plot a quadratic function
         }
-        QString filename = this->folderLocation + "D("+QString::number(X)+",y,"+QString::number(Z)+").txt";
+        QString filename = folderLocation + "D("+QString::number(X)+",y,"+QString::number(Z)+").txt";
         printDose2File(filename, "Y", X, Z, y, Dy);
     }
 }
@@ -506,73 +621,49 @@ void MainWindow::saveDz()
         int Y = ui->Y_val->text().toInt();
        // int Z = ui->Z_val->text().toInt();
 
-        QVector<double> z(this->sizeZ);
-        QVector<double> Dz(this->sizeZ); // initialize with entries 0..100
-        for (int i=0; i<this->sizeZ; ++i)
+        QVector<double> z(sizeZ);
+        QVector<double> Dz(sizeZ); // initialize with entries 0..100
+        for (int i=0; i<sizeZ; ++i)
         {
           z[i] = i; // x goes from -1 to 1
           Dz[i] = (DoseDistr.element(X,Y,i)); // let's plot a quadratic function
         }
 
-        QString filename = this->folderLocation + "D("+QString::number(X)+","+QString::number(Y)+",z).txt";
+        QString filename = folderLocation + "D("+QString::number(X)+","+QString::number(Y)+",z).txt";
         printDose2File(filename, "Z", X, Y, z, Dz);
 
     }
 }
-
 void MainWindow::saveGlobalDz()
 {
     if (DistributionIsSet)
     {
-        QVector<double> z(this->sizeZ);
-        QVector<double> Dz(this->sizeZ,0.0); // initialize with entries 0..100
+        QVector<double> z(sizeZ);
+        QVector<double> Dz(sizeZ,0.0); // initialize with entries 0..100
 
-        for (int i=0; i<this->sizeZ; ++i)
+        for (int i=0; i<sizeZ; ++i)
         {
           z[i] = i; // x goes from -1 to 1
         }
 
-        for (int z=0; z<this->sizeZ; ++z)
+        for (int z=0; z<sizeZ; ++z)
         {
-            for(int X=0; X<this->sizeX; ++X){
-                for(int Y=0; Y<this->sizeY; ++Y){
+            for(int X=0; X<sizeX; ++X){
+                for(int Y=0; Y<sizeY; ++Y){
                     Dz[z] += (DoseDistr.element(X,Y,z)); // let's plot a quadratic function
                 }
             }
         }
-        QString filename = this->folderLocation + "D(z).txt";
+        QString filename = folderLocation + "D(z).txt";
         printDose2File(filename, "Z", -999, -999, z, Dz);
 
     }
 
 }
 
-
-// Методы: ==========================================
-void MainWindow::loadNewDoseFile(QString filename)
-{
-   // this->DoseDestr = new DoseDistribution(filename.toStdString());
-    bool FileFormSRNA = ui->actionSRNA->isChecked();
-    bool FileFormGEANT4 = ui->actionGEANT4->isChecked();
-
-    QString FileFormat;
-    if(FileFormSRNA){
-        FileFormat = "SRNA";
-    } else if (FileFormGEANT4){
-        FileFormat = "GEANT4";
-    } else {
-        return;
-    }
-    //this->DoseDestr = new DoseDistribution(filename, FileFormat);
-    DoseDistr = DoseVector(filename, FileFormat);
-    sizeX = DoseDistr.getXSize();
-    sizeY = DoseDistr.getYSize();
-    sizeZ = DoseDistr.getZSize();
-}
-
 void MainWindow::printDose2File(QString FileName,QString Direction, int coordinate1, int coordinate2, QVector<double> direction, QVector<double> Dose)
 {
-    //QString FileName =this->folderLocation + "D("+Direction+").txt";
+    //QString FileName =folderLocation + "D("+Direction+").txt";
 
     QFile newFile(FileName);
     newFile.open(QIODevice::ReadWrite | QIODevice::Truncate | QIODevice::Text);
@@ -621,11 +712,10 @@ void MainWindow::printDose2File(QString FileName,QString Direction, int coordina
     newFile.close();
 }
 
-
 //==================================================
 ///=============Построение графиков:================
 //==================================================
-// Слоты: ==========================================
+//
 void MainWindow::updateCurves()
 {
 
@@ -640,9 +730,9 @@ void MainWindow::updateCurves()
 
         //Инициализация осей и очистка от старых графиков
         int N = ui->Axes_curves->graphCount();
-        if (N<this->curvesMaximum)
+        if (N<curvesMaximum)
         {
-            for(int i=N-1;i<this->curvesMaximum;i++)
+            for(int i=N-1;i<curvesMaximum;i++)
             {
                 ui->Axes_curves->addGraph();
             }
@@ -672,22 +762,27 @@ void MainWindow::updateCurves()
         int Y = ui->Y_val->text().toInt();
         int Z = ui->Z_val->text().toInt();
 
-        //Параметры нормировки о область построения
-        double DoseMax=DoseDistr.getDoseMaxValue();
-        int xLimits[3]{};
+        //Параметры нормировки
+        int posX = ui->MaxVal_pointX->text().toInt();
+        int posY = ui->MaxVal_pointY->text().toInt();
+        int posZ = ui->MaxVal_pointZ->text().toInt();
+        double doseAtPoint = DoseDistr.element(posX,posY,posZ);
+        double relVal = ui->ValueAtPoint -> text().toDouble();
+
+        double DoseMax = doseAtPoint/(0.01*relVal);
+
 
         //Считчик количества графиков (для построения легенды)
         int graphCounter=-1;
 
         if(Dz_rb_val==2)
         {
-            QVector<double> z(this->sizeZ), Dz(this->sizeZ); // initialize with entries 0..100
-            for (int i=0; i<this->sizeZ; ++i)
+            QVector<double> z(sizeZ), Dz(sizeZ); // initialize with entries 0..100
+            for (int i=0; i<sizeZ; ++i)
             {
               z[i] = i; // x goes from -1 to 1
               Dz[i] = (DoseDistr.element(X,Y,i))/DoseMax; // let's plot a quadratic function
             }
-            xLimits[2]=(this->sizeZ)-1;
 
             graphCounter++;
             ui -> Axes_curves -> addGraph();
@@ -700,14 +795,12 @@ void MainWindow::updateCurves()
 
         if(Dx_rb_val==2)
         {
-
-            QVector<double> x(this->sizeX), Dx(this->sizeX); // initialize with entries 0..100
-            for (int i=0; i<this->sizeX; ++i)
+            QVector<double> x(sizeX), Dx(sizeX); // initialize with entries 0..100
+            for (int i=0; i<sizeX; ++i)
             {
               x[i] = i;
               Dx[i] = (DoseDistr.element(i,Y,Z))/DoseMax;
             }
-            xLimits[0]=(this->sizeX)-1;
 
             graphCounter++;
             ui -> Axes_curves -> addGraph();
@@ -720,13 +813,12 @@ void MainWindow::updateCurves()
 
         if(Dy_rb_val==2)
         {
-            QVector<double> y(this->sizeY), Dy(this->sizeY); // initialize with entries 0..100
-            for (int i=0; i<this->sizeY; ++i)
+            QVector<double> y(sizeY), Dy(sizeY); // initialize with entries 0..100
+            for (int i=0; i<sizeY; ++i)
             {
               y[i] = i;
               Dy[i] = (DoseDistr.element(X,i,Z))/DoseMax; // let's plot a quadratic function
             }
-            xLimits[1]=(this->sizeY)-1;
 
             graphCounter++;
             ui -> Axes_curves -> addGraph();
@@ -738,31 +830,29 @@ void MainWindow::updateCurves()
 
         if(Dz_total_val == 2){
 
-            QVector<double> z(this->sizeZ);
-            QVector<double> TDz(this->sizeZ,0.0); // initialize with entries 0..100
+            QVector<double> z(sizeZ);
+            QVector<double> TDz(sizeZ,0.0); // initialize with entries 0..100
             double totalMaximum=0;
 
-            for (int i=0; i<this->sizeZ; ++i)
+            for (int i=0; i<sizeZ; ++i)
             {
               z[i] = i; // x goes from -1 to 1
             }
 
-            for (int z=0; z<this->sizeZ; ++z)
+            for (int z=0; z<sizeZ; ++z)
             {
-                for(int X=0; X<this->sizeX; ++X){
-                    for(int Y=0; Y<this->sizeY; ++Y){
+                for(int X=0; X<sizeX; ++X){
+                    for(int Y=0; Y<sizeY; ++Y){
                         TDz[z] += (DoseDistr.element(X,Y,z)); // let's plot a quadratic function
                         if(TDz[z]>totalMaximum)
                         {totalMaximum=TDz[z];}
                     }
                 }
             }
-            for (int z=0; z<this->sizeZ; ++z)
+            for (int z=0; z<sizeZ; ++z)
             {
                 TDz[z] /= totalMaximum;
             }
-
-            xLimits[2]=(this->sizeZ)-1;
 
             graphCounter++;
             ui -> Axes_curves -> addGraph();
@@ -773,15 +863,15 @@ void MainWindow::updateCurves()
             ui -> Axes_curves -> graph(graphCounter)->setLineStyle(QCPGraph::lsStepLeft);  // Задание типа линии (lsStepCenter - ступенчатый)
         }
 
-        int xLimit=0;
-        for (int i=0;i<3;i++)
-        {
-            if(xLimits[i]>xLimit)
-            {    xLimit=xLimits[i];}
-        }
+        double axisXmin = ui->axXLim_min->text().toDouble();
+        double axisXmax = ui->axXLim_max->text().toDouble();
+        double axisYmin = ui->axYLim_min->text().toDouble();
+        double axisYmax = ui->axYLim_max->text().toDouble();
+        //int yTickCount = axisYmax-axisYmin
 
-        ui -> Axes_curves -> xAxis->setRange(0, xLimit);
-        ui -> Axes_curves -> yAxis->setRange(0, 1.0);
+        ui -> Axes_curves -> xAxis->setRange(axisXmin, axisXmax);
+        ui -> Axes_curves -> yAxis->setRange(axisYmin, axisYmax);
+
         ui -> Axes_curves -> yAxis->ticker()->setTickCount(10);
 
         QString xAxlabel="";
@@ -866,20 +956,26 @@ void MainWindow::updatePlane()
         ui -> Axes_plane -> xAxis->setLabelFont(labelFont);
         ui -> Axes_plane -> yAxis->setLabelFont(labelFont);
 
-        //changeAxesProportion(ui->Axes_curves, 300, 600);
-        //setAxesSize(ui->Axes_plane, 1000, 300);
-        //setAxesSize(ui->Axes_curves, 700, 700);
+        ui -> Axes_plane -> replot();
+
+
 
     }
 }
 
-// Методы: ==========================================
 int MainWindow::CMap()
 {
     int X = ui->X_val->text().toInt();
     int Y = ui->Y_val->text().toInt();
     int Z = ui->Z_val->text().toInt();
-    double DoseMax=DoseDistr.getDoseMaxValue();
+
+    //Условия нормировки
+    int posX = ui->MaxVal_pointX->text().toInt();
+    int posY = ui->MaxVal_pointY->text().toInt();
+    int posZ = ui->MaxVal_pointZ->text().toInt();
+    double doseAtPoint = DoseDistr.element(posX,posY,posZ);
+    double relVal = ui->ValueAtPoint -> text().toDouble();
+    double DoseMax = doseAtPoint/(0.01*relVal);
 
     QCPColorMap *colorMap = new QCPColorMap(ui->Axes_plane->xAxis, ui->Axes_plane->yAxis);
 
@@ -887,25 +983,26 @@ int MainWindow::CMap()
 
     if(ui->plane_XY_rb->isChecked())
     {
-        colorMap->data()->setSize(this->sizeX, this->sizeY);
-        colorMap->data()->setRange(QCPRange(0, this->sizeX), QCPRange(0, this->sizeY));
-        for (int x=0; x<this->sizeX; ++x)
+        colorMap->data()->setSize(sizeX,sizeY);
+        colorMap->data()->setRange(QCPRange(0, sizeX-1),
+                                   QCPRange(0, sizeY-1));
+        for (int x=0; x<sizeX; ++x)
         {
-            for (int y=0; y<this->sizeY; ++y)
+            for (int y=0; y<sizeY; ++y)
             {
                 colorMap->data()->setCell(x, y, (DoseDistr.element(x,y,Z))/DoseMax);
             }
         }
 
         int MaxInd=0, xShift=0, yShift=0;
-        if(this->sizeX>this->sizeY)
+        if(sizeX > sizeY)
         {
-            MaxInd=this->sizeX;
-            yShift = 0.5*((this->sizeX) - (this->sizeY));
+            MaxInd=sizeX-1;
+            yShift = 0.5*(sizeX - sizeY);
         }else
         {
-            MaxInd=this->sizeY;
-            xShift = 0.5*((this->sizeY) - (this->sizeX));
+            MaxInd=sizeY-1;
+            xShift = 0.5*(sizeY - sizeX);
         }
         ui->Axes_plane->xAxis->setRange(0-xShift,MaxInd-xShift);
         ui->Axes_plane->yAxis->setRange(0-yShift,MaxInd-yShift);
@@ -914,25 +1011,26 @@ int MainWindow::CMap()
 
     }else if(ui->plane_XZ_rb->isChecked())
     {
-        colorMap->data()->setSize(this->sizeZ, this->sizeX);
-        colorMap->data()->setRange(QCPRange(0, this->sizeZ), QCPRange(0, this->sizeX));
-        for (int z=0; z<this->sizeZ; ++z)
+        colorMap->data()->setSize(sizeZ, sizeX);
+        colorMap->data()->setRange(QCPRange(0, sizeZ-1),
+                                   QCPRange(0, sizeX-1));
+        for (int z=0; z< sizeZ; ++z)
         {
-            for (int x=0; x<this->sizeX; ++x)
+            for (int x=0; x<sizeX; ++x)
             {
                 colorMap->data()->setCell(z, x, (DoseDistr.element(x,Y,z))/DoseMax);
             }
         }
 
         int MaxInd=0, xShift=0, yShift=0;
-        if(this->sizeX>this->sizeZ)
+        if( sizeX> sizeZ)
         {
-            MaxInd = this->sizeX;
-            xShift = 0.5*((this->sizeX) - (this->sizeZ));
+            MaxInd = sizeX-1;
+            xShift = 0.5*(sizeX - sizeZ);
         }else
         {
-            MaxInd = this->sizeZ;
-            yShift = 0.5*((this->sizeZ) - (this->sizeX));
+            MaxInd = sizeZ -1;
+            yShift = 0.5*(sizeZ - sizeX);
         }
         ui->Axes_plane->xAxis->setRange(0-xShift,MaxInd-xShift);
         ui->Axes_plane->yAxis->setRange(0-yShift,MaxInd-yShift);
@@ -941,25 +1039,26 @@ int MainWindow::CMap()
 
     }else if(ui->plane_YZ_rb->isChecked())
     {
-        colorMap->data()->setSize(this->sizeZ, this->sizeY);
-        colorMap->data()->setRange(QCPRange(0, this->sizeZ), QCPRange(0, this->sizeY));
-        for (int z=0; z<this->sizeZ; ++z)
+        colorMap->data()->setSize(sizeZ, sizeY);
+        colorMap->data()->setRange(QCPRange(0, sizeZ-1),
+                                   QCPRange(0, sizeY-1));
+        for (int z = 0; z < sizeZ; ++z)
         {
-            for (int y=0; y<this->sizeX; ++y)
+            for (int y = 0; y < sizeX; ++y)
             {
                 colorMap->data()->setCell(z, y, (DoseDistr.element(X,y,z))/DoseMax);
             }
         }
 
         int MaxInd=0, xShift=0, yShift=0;
-        if(this->sizeZ>this->sizeY)
+        if(sizeZ > sizeY)
         {
-            MaxInd=this->sizeZ;
-            yShift = 0.5*((this->sizeZ) - (this->sizeY));
+            MaxInd = sizeZ-1;
+            yShift = 0.5*(sizeZ - sizeY);
         }else
         {
-            MaxInd=this->sizeY;
-            xShift = 0.5*((this->sizeZ) - (this->sizeY));
+            MaxInd= sizeY-1;
+            xShift = 0.5*(sizeZ - sizeY);
         }
         ui->Axes_plane->xAxis->setRange(0-xShift,MaxInd-xShift);
         ui->Axes_plane->yAxis->setRange(0-yShift,MaxInd-yShift);
@@ -994,7 +1093,14 @@ int MainWindow::ISOCMap()
     int X = ui->X_val->text().toInt();
     int Y = ui->Y_val->text().toInt();
     int Z = ui->Z_val->text().toInt();
-    double DoseMax=DoseDistr.getDoseMaxValue();
+
+    //Условия нормировки
+    int posX = ui->MaxVal_pointX->text().toInt();
+    int posY = ui->MaxVal_pointY->text().toInt();
+    int posZ = ui->MaxVal_pointZ->text().toInt();
+    double doseAtPoint = DoseDistr.element(posX,posY,posZ);
+    double relVal = ui->ValueAtPoint -> text().toDouble();
+    double DoseMax = doseAtPoint/(0.01*relVal);
 
     QCPColorMap *colorMap = new QCPColorMap(ui->Axes_plane->xAxis, ui->Axes_plane->yAxis);
 
@@ -1054,11 +1160,12 @@ int MainWindow::ISOCMap()
 
     if(ui->plane_XY_rb->isChecked())
     {
-        colorMap->data()->setSize(this->sizeX, this->sizeY);
-        colorMap->data()->setRange(QCPRange(0, this->sizeX), QCPRange(0, this->sizeY));
-        for (int x=0; x<this->sizeX; ++x)
+        colorMap->data()->setSize(sizeX, sizeY);
+        colorMap->data()->setRange(QCPRange(0, sizeX-1),
+                                   QCPRange(0, sizeY-1));
+        for (int x=0; x < sizeX; ++x)
         {
-            for (int y=0; y<this->sizeY; ++y)
+            for (int y=0; y < sizeY; ++y)
             {
                 doseVal=(DoseDistr.element(x,y,Z))/DoseMax;// нормированное значение дозы в точке
                 lvl=0;//текущий уровень изодозы
@@ -1083,14 +1190,14 @@ int MainWindow::ISOCMap()
         }
 
         int MaxInd=0, xShift=0, yShift=0;
-        if(this->sizeX>this->sizeY)
+        if( sizeX > sizeY)
         {
-            MaxInd=this->sizeX;
-            yShift = 0.5*((this->sizeX) - (this->sizeY));
+            MaxInd= sizeX - 1;
+            yShift = 0.5*(sizeX - sizeY);
         }else
         {
-            MaxInd=this->sizeY;
-            xShift = 0.5*((this->sizeY) - (this->sizeX));
+            MaxInd = sizeY - 1;
+            xShift = 0.5*(sizeY - sizeX);
         }
         ui->Axes_plane->xAxis->setRange(0-xShift,MaxInd-xShift);
         ui->Axes_plane->yAxis->setRange(0-yShift,MaxInd-yShift);
@@ -1099,11 +1206,12 @@ int MainWindow::ISOCMap()
 
     }else if(ui->plane_XZ_rb->isChecked())
     {
-        colorMap->data()->setSize(this->sizeZ, this->sizeX);
-        colorMap->data()->setRange(QCPRange(0, this->sizeZ), QCPRange(0, this->sizeX));
-        for (int z=0; z<this->sizeZ; ++z)
+        colorMap->data()->setSize(sizeZ, sizeX);
+        colorMap->data()->setRange(QCPRange(0, sizeZ-1),
+                                   QCPRange(0, sizeX-1));
+        for (int z=0; z < sizeZ; ++z)
         {
-            for (int x=0; x<this->sizeX; ++x)
+            for (int x=0; x < sizeX; ++x)
             {
                 doseVal=(DoseDistr.element(x,Y,z))/DoseMax;// нормированное значение дозы в точке
                 lvl=0;//текущий уровень изодозы
@@ -1128,25 +1236,26 @@ int MainWindow::ISOCMap()
         }
 
         int MaxInd=0, xShift=0, yShift=0;
-        if(this->sizeX>this->sizeZ)
+        if(sizeX > sizeZ)
         {
-            MaxInd = this->sizeX;
-            xShift = 0.5*((this->sizeX) - (this->sizeZ));
+            MaxInd = sizeX - 1;
+            xShift = 0.5*(sizeX - sizeZ);
         }else
         {
-            MaxInd = this->sizeZ;
-            yShift = 0.5*((this->sizeZ) - (this->sizeX));
+            MaxInd = sizeZ - 1;
+            yShift = 0.5*(sizeZ - sizeX);
         }
         ui->Axes_plane->xAxis->setRange(0-xShift,MaxInd-xShift);
         ui->Axes_plane->yAxis->setRange(0-yShift,MaxInd-yShift);
         xAxlabel="Z, vox.u.", yAxlabel = "X, vox.u.";
     }else if(ui->plane_YZ_rb->isChecked())
     {
-        colorMap->data()->setSize(this->sizeZ, this->sizeY);
-        colorMap->data()->setRange(QCPRange(0, this->sizeZ), QCPRange(0, this->sizeY));
-        for (int z=0; z<this->sizeZ; ++z)
+        colorMap->data()->setSize(sizeZ, sizeY);
+        colorMap->data()->setRange(QCPRange(0, sizeZ-1),
+                                   QCPRange(0, sizeY-1));
+        for (int z=0; z < sizeZ; ++z)
         {
-            for (int y=0; y<this->sizeX; ++y)
+            for (int y=0; y < sizeX; ++y)
             {
                 doseVal=(DoseDistr.element(X,y,z))/DoseMax;// нормированное значение дозы в точке
                 lvl=0;//текущий уровень изодозы
@@ -1171,14 +1280,14 @@ int MainWindow::ISOCMap()
         }
 
         int MaxInd=0, xShift=0, yShift=0;
-        if(this->sizeZ>this->sizeY)
+        if(sizeZ > sizeY)
         {
-            MaxInd=this->sizeZ;
-            yShift = 0.5*((this->sizeZ) - (this->sizeY));
+            MaxInd= sizeZ - 1;
+            yShift = 0.5*(sizeZ - sizeY);
         }else
         {
-            MaxInd=this->sizeY;
-            xShift = 0.5*((this->sizeZ) - (this->sizeY));
+            MaxInd=sizeY-1;
+            xShift = 0.5*(sizeZ - sizeY);
         }
         ui->Axes_plane->xAxis->setRange(0-xShift,MaxInd-xShift);
         ui->Axes_plane->yAxis->setRange(0-yShift,MaxInd-yShift);
@@ -1210,14 +1319,22 @@ int MainWindow::ISOCMap()
 
 int MainWindow::ISOdoses()
 {
-
-
     int Xval = ui->X_val->text().toInt();
     int Yval = ui->Y_val->text().toInt();
     int Zval = ui->Z_val->text().toInt();
 
-    double DoseMax=DoseDistr.getDoseMaxValue();
+    //Условия нормировки
+    int posX = ui->MaxVal_pointX->text().toInt();
+    int posY = ui->MaxVal_pointY->text().toInt();
+    int posZ = ui->MaxVal_pointZ->text().toInt();
+    double doseAtPoint = DoseDistr.element(posX,posY,posZ);
+    double relVal = ui->ValueAtPoint -> text().toDouble();
+    double DoseMax = doseAtPoint/(0.01*relVal);
 
+    //==============================================================
+    /// Проверка и упорядочивание уровней изодозных кривых
+    //==============================================================
+    ///
     const int N_lvls=9;
     QLineEdit* isodose_list[N_lvls] = {ui->isodose_lvl_1,
                                        ui->isodose_lvl_2,
@@ -1264,55 +1381,77 @@ int MainWindow::ISOdoses()
         isodose_lvl_num[lvl]=isodose_lvl_num[lvl] / 100;
     }
 
-    QString xAxlabel="", yAxlabel = "";
 
-    int ContourCounter = 0;
-    int curveLength;
-
-    QVector<double> xData, yData, tData;
-
+    //==============================================================
+    ///              Насройка стиля отображения
+    //==============================================================
+    ///
+    // Общий стиль линий
     QPen PenStyle;
     PenStyle.setWidth(3);
 
+    // Подписи осей
+    QString xAxlabel="", yAxlabel = "";
 
-    int I = -1;
+    // Лимиты отображения осей и возможные сдивиги осей для точного отображения
+    int MaxInd=0, xShift=0, yShift=0;
+
+    // Направления вдоль осей X и Y. Нужны для переназначения координат матрицы
+    int dirX, dirY; // (например dirX = Z, dirY = X => плоскость ZX
+
+    //Счетчик контуров на графике
+    //int ContourCounter = 0;
+
+    //Длина текущего контура
+    int curveLength;
+
+    //Данные для отображения текущего контура на графике
+    QVector<double> xData, yData, tData;
+
     int clearObjLessThen=2;
+
     bool traceCavities = false;
 
+    // Вектор всех кривых на графике
     QVector<QCPCurve*> newCurve;
+    // Считчик контуров
+    int curveID = -1;
 
-    int MaxInd=0, xShift=0, yShift=0;
-    int dirX, dirY; //направления вдоль осей X и Y. Нужны для переназначения координат матрицы
 
+    //==============================================================
+    ///     Определение активного сечения и задание имени осей
+    //==============================================================
+    ///
     if(ui->plane_XZ_rb->isChecked())
     {
-        dirX = this->sizeZ;
-        dirY = this->sizeX;
+        dirX = sizeZ;
+        dirY = sizeX;
 
         xAxlabel="Z, vox.u.", yAxlabel = "X, vox.u.";
 
     }else if(ui->plane_XY_rb->isChecked())
     {
-        dirX = this->sizeX;
-        dirY = this->sizeY;
+        dirX = sizeX;
+        dirY = sizeY;
 
         xAxlabel="X, vox.u.", yAxlabel = "Y, vox.u.";
 
     }else if(ui->plane_YZ_rb->isChecked())
     {
-        dirX = this->sizeZ;
-        dirY = this->sizeY;
+        dirX = sizeZ;
+        dirY = sizeY;
 
         xAxlabel="Z, vox.u.", yAxlabel = "Y, vox.u.";
 
     }else return 1;
 
-    //++++ИНИЦИАЛИЗАЦИЯ МАТРИЦЫ+++++
-    double** planeMtrx = new double* [dirX]{};
-    for (int i=0; i<dirX; i++)
-    {
-        planeMtrx[i]=new double[dirY]{};
-    }
+    //==============================================================
+    ///        Задание матрицы текущего среза
+    //==============================================================
+    ///
+    // Инициализация
+    std::vector<std::vector<double>> planeMtrx (dirX, std::vector<double>(dirY, 0.0));
+
     // Присвоение элементов среза
     if(ui->plane_XZ_rb->isChecked())
     {
@@ -1344,6 +1483,7 @@ int MainWindow::ISOdoses()
 
     }else return 1;
 
+    //Проверка
     bool WriteNewFile = false;//true;//
     if (WriteNewFile)
     {
@@ -1362,36 +1502,35 @@ int MainWindow::ISOdoses()
         newFile.close();
     }
 
+    //==============================================================
+    ///        Поиск изодозных кривых
+    //==============================================================
+    ///
     //Инициализация поиска
-    //MooreTracing isodoseCurve(planeMtrx,dirX,dirY,0.0);
-    QVector<MooreTracing*> isoCurve(N_lvls);
+    QVector<MooreTracing> isoCurve(N_lvls);
 
     //Сканирование по изодозам
-    for(int lvl=0; lvl<N_lvls;lvl++)
+    for(int lvl=0; lvl<N_lvls-1;lvl++)
     {
-        isoCurve[lvl] = new MooreTracing(planeMtrx,dirX,dirY,isodose_lvl_num[lvl]);
-        PenStyle.setColor(this->colorList[lvl]);
-        //Поиск контуров
-        while(isoCurve[lvl]->traceNewObj(!traceCavities))
+        isoCurve[lvl] = MooreTracing(planeMtrx,dirX,dirY,isodose_lvl_num[lvl]);
+        PenStyle.setColor(colorList[lvl]);
+        //Поиск всех контуров
+        while(isoCurve[lvl].traceNewObj(!traceCavities))
         {
-            //Устранение контуров - линий;
-          // if ((isoCurve[lvl]->getTraceXmax()-isoCurve[lvl]->getTraceXmin())==0) continue;
-          // if ((isoCurve[lvl]->getTraceYmax()-isoCurve[lvl]->getTraceYmin())==0) continue;
-
             curveX.clear();
             curveY.clear();
             xData.clear();
             yData.clear();
             tData.clear();
 
-            curveX = isoCurve[lvl]->getNewTraceX();
-            curveY = isoCurve[lvl]->getNewTraceY();
+            curveX = isoCurve[lvl].getNewTraceX();
+            curveY = isoCurve[lvl].getNewTraceY();
             curveLength=curveX.size();
             if(curveX.empty()) continue;
             if(clearObjLessThen > curveLength) continue;
 
-            I++;
-            ContourCounter++;
+            curveID++;
+            //ContourCounter++;
 
             newCurve.push_back(new QCPCurve(ui -> Axes_plane ->xAxis, ui -> Axes_plane ->yAxis));
 
@@ -1401,28 +1540,72 @@ int MainWindow::ISOdoses()
 
             for (int i=0; i<curveLength; i++)
             {
-              xData[i] = curveX[i] + 0.5;
-              yData[i] = curveY[i] + 0.5;
+              xData[i] = curveX[i];
+              yData[i] = curveY[i];
               tData[i] = i;
             }
 
-            newCurve[I]->setData(tData, xData, yData);
-            newCurve[I]->setLineStyle(QCPCurve::LineStyle::lsLine);
-            newCurve[I]->setPen(PenStyle);
+            newCurve[curveID]->setData(tData, xData, yData);
+            newCurve[curveID]->setLineStyle(QCPCurve::LineStyle::lsLine);
+            newCurve[curveID]->setPen(PenStyle);
 
             ui->Axes_plane->replot();
         }
     }
 
-    //++++УДАЛЕНИЕ МАТРИЦЫ+++++
-    for (int i=0;i<dirX;i++)
+    // Для последнего контура нужен поиск полостей
     {
-        delete [] planeMtrx[i];
+        int lvl=N_lvls;
+
+        isoCurve[lvl] = MooreTracing(planeMtrx,dirX,dirY,isodose_lvl_num[lvl]);
+        PenStyle.setColor(colorList[lvl]);
+        //Поиск всех контуров
+        while(isoCurve[lvl].traceNewObj(false))
+        {
+            curveX.clear();
+            curveY.clear();
+            xData.clear();
+            yData.clear();
+            tData.clear();
+
+            curveX = isoCurve[lvl].getNewTraceX();
+            curveY = isoCurve[lvl].getNewTraceY();
+            curveLength=curveX.size();
+            if(curveX.empty()) continue;
+            if(clearObjLessThen > curveLength) continue;
+
+            curveID++;
+            //ContourCounter++;
+
+            newCurve.push_back(new QCPCurve(ui -> Axes_plane ->xAxis, ui -> Axes_plane ->yAxis));
+
+            xData.resize(curveLength);
+            yData.resize(curveLength);
+            tData.resize(curveLength);
+
+            for (int i=0; i<curveLength; i++)
+            {
+              xData[i] = curveX[i];
+              yData[i] = curveY[i];
+              tData[i] = i;
+            }
+
+            newCurve[curveID]->setData(tData, xData, yData);
+            newCurve[curveID]->setLineStyle(QCPCurve::LineStyle::lsLine);
+            newCurve[curveID]->setPen(PenStyle);
+
+            ui->Axes_plane->replot();
+        }
     }
-    delete [] planeMtrx;
+
+    planeMtrx.clear();
 
 
-    //Организация области отображения. Можно переделать, с учетом растяжения графика
+    //==============================================================
+    ///        Настройка осей графика
+    //==============================================================
+    ///
+    // Организация области отображения. Можно переделать, с учетом растяжения графика
     if(dirX > dirY)
     {
         MaxInd=dirX;
@@ -1456,8 +1639,89 @@ int MainWindow::ISOdoses()
 
 }
 
+void MainWindow::setCurveRange()
+{
+    double axisXmin = ui->axXLim_min->text().toDouble();
+    double axisXmax = ui->axXLim_max->text().toDouble();
+    double axisYmin = ui->axYLim_min->text().toDouble();
+    double axisYmax = ui->axYLim_max->text().toDouble();
 
+    ui -> Axes_curves -> xAxis->setRange(axisXmin, axisXmax);
+    ui -> Axes_curves -> yAxis->setRange(axisYmin, axisYmax);
 
+    ui -> Axes_curves -> replot();
+}
 
+void MainWindow::resetCurveRange()
+{
+    double axisXmin = 0;
+    ui->axXLim_min->setText(QString::number(axisXmin));
 
+    double axisXmax = 0;
+    sizeX > axisXmax ? axisXmax = sizeX : false;
+    sizeY > axisXmax ? axisXmax = sizeY : false;
+    sizeZ > axisXmax ? axisXmax = sizeZ : false;
+    ui->axXLim_max->setText(QString::number(axisXmax));
 
+    double axisYmin = 0;
+    ui->axYLim_min->setText(QString::number(axisYmin));
+
+    double MaxVal = ui->ValueAtPoint -> text().toDouble();
+    double axisYmax = 0.0105*MaxVal;
+    ui->axYLim_max->setText(QString::number(axisYmax));
+
+    ui -> Axes_curves -> xAxis->setRange(axisXmin, axisXmax);
+    ui -> Axes_curves -> yAxis->setRange(axisYmin, axisYmax);
+
+    ui -> Axes_curves -> replot();
+}
+
+void MainWindow::legendDoubleClick(QCPLegend *legend, QCPAbstractLegendItem *item)
+{
+  // Rename a graph by double clicking on its legend item
+  Q_UNUSED(legend)
+  if (item) // only react if item was clicked (user could have clicked on border padding of legend where there is no item, then item is 0)
+  {
+    QCPPlottableLegendItem *plItem = qobject_cast<QCPPlottableLegendItem*>(item);
+    bool ok;
+    QString newName = QInputDialog::getText(this, "Change legend label", "New graph name:", QLineEdit::Normal, plItem->plottable()->name(), &ok);
+    if (ok)
+    {
+      plItem->plottable()->setName(newName);
+      legend->parentPlot()->replot();
+      //ui->Axes_plane->replot();
+    }
+  }
+}
+
+void MainWindow::axisLabelDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart part)
+{
+  // Set an axis label by double clicking on it
+  if (part == QCPAxis::spAxisLabel) // only react when the actual axis label is clicked, not tick label or axis backbone
+  {
+    bool ok;
+    QString newLabel = QInputDialog::getText(this, "Change axes label", "New axis label:", QLineEdit::Normal, axis->label(), &ok);
+    if (ok)
+    {
+      axis->setLabel(newLabel);
+      axis->parentPlot()->replot();
+      //ui->Axes_plane->replot();
+      //ui->Axes_curves->replot();
+    }
+  }
+}
+
+void MainWindow::resetPointOfMaximum()
+{
+    if (DistributionIsSet)
+    {
+        doseMaxValPos = DoseDistr.getMaxValPosition();
+        ui->MaxVal_pointX->setText(QString::number(std::get<0>(doseMaxValPos)));
+        ui->MaxVal_pointY->setText(QString::number(std::get<1>(doseMaxValPos)));
+        ui->MaxVal_pointZ->setText(QString::number(std::get<2>(doseMaxValPos)));
+
+        updateCurves();
+        updatePlane();
+
+    }
+}

@@ -1,49 +1,72 @@
 #include "mooretracing.h"
 
 #include <iostream>
-
-
+#include <vector>
+MooreTracing::MooreTracing(){}
 MooreTracing::MooreTracing(double** inpMatrix, int inpWidth, int inpHeight, double searchingLvl)
 {
-    this->Map_width = inpWidth + 2;
-    this->Map_height = inpHeight + 2;
-    //this->baseMtrx = inpMatrix; так нельзя, это указатель.
+    Map_width = inpWidth + 2;
+    Map_height = inpHeight + 2;
 
     initMap();
     setNewMap(inpMatrix, inpWidth, inpHeight, searchingLvl);
 
     //printMtrx();
 }
+MooreTracing::MooreTracing(std::vector<std::vector<double>> inpMatrix, int inpWidth, int inpHeight, double searchingLvl)
+{
+    Map_width = inpWidth + 2;
+    Map_height = inpHeight + 2;
+
+    initMap();
+    setNewMap(inpMatrix, inpWidth, inpHeight, searchingLvl);
+
+}
+
 
 MooreTracing::~MooreTracing()
 {
    destroyMap();
 }
 
+
+MooreTracing& MooreTracing::operator=(const MooreTracing &other)
+{
+    Map_width = other.Map_width;
+    Map_height = other.Map_height;
+
+    Map_mtrx = other.Map_mtrx;
+    Map_mtrx_const = other.Map_mtrx_const;
+
+    return *this;
+}
+
+//=====================================================================
+///==================0.Задание исходной матрицы========================
+//=====================================================================
+
 void MooreTracing::initMap()
 {
-    this->Map_mtrx = new bool* [this->Map_width]{};
-    for (int i=0; i<this->Map_width; i++)
+    Map_mtrx.resize(Map_width);
+    for (int i=0; i<Map_width; i++)
     {
-        this->Map_mtrx[i]=new bool[this->Map_height]{};
+        Map_mtrx[i].resize(Map_height);
+        std::fill(Map_mtrx[i].begin(),Map_mtrx[i].end(),false);
     }
+    Map_mtrx_const = Map_mtrx;
 }
 
 void MooreTracing::destroyMap()
 {
-    for (int i=0;i<this->Map_width;i++)
-    {
-        delete [] this->Map_mtrx[i];
-    }
-    delete [] this->Map_mtrx;
-    this->Map_mtrx = nullptr;
+    Map_mtrx.clear();
+    Map_mtrx_const.clear();
 }
 
 ///Есть проблема, которая приводит к появлению спиралей
 int MooreTracing::setNewMap(double** inpMatrix, int inpWidth, int inpHeight, double searchingLvl)
 {
     // Проверка размерностей
-    if ((inpWidth!=(this->Map_width)-2) || (inpHeight!=(this->Map_height)-2))
+    if ((inpWidth!=(Map_width)-2) || (inpHeight!=(Map_height)-2))
     {
         return 1; // ошибка, размеры матриц не соответствуют
     }
@@ -56,37 +79,65 @@ int MooreTracing::setNewMap(double** inpMatrix, int inpWidth, int inpHeight, dou
         {
             if (inpMatrix[i][j]>=searchingLvl)
             {
-                this->Map_mtrx[i+1][j+1]=true;
+                Map_mtrx[i+1][j+1]=true;
             }else{
-                this->Map_mtrx[i+1][j+1]=false;
+                Map_mtrx[i+1][j+1]=false;
             }
         }
     }
 
+    Map_mtrx_const = Map_mtrx;
     return 0; //код отработал исправно
 }
+int MooreTracing::setNewMap(std::vector<std::vector<double>> inpMatrix, int inpWidth, int inpHeight, double searchingLvl)
+{
+    // Проверка размерностей
+    if ((inpWidth!=(Map_width)-2) || (inpHeight!=(Map_height)-2))
+    {
+        return 1; // ошибка, размеры матриц не соответствуют
+    }
+
+
+    // Присвоение элементов, соответствующих исследуемой матрице
+    for (int i=0; i<inpWidth; i++)
+    {
+        for (int j=0; j<inpHeight; j++)
+        {
+            if (inpMatrix[i][j]>=searchingLvl)
+            {
+                Map_mtrx[i+1][j+1]=true;
+            }else{
+                Map_mtrx[i+1][j+1]=false;
+            }
+        }
+    }
+
+    Map_mtrx_const = Map_mtrx;
+    return 0; //код отработал исправно
+}
+
 /*
 int MooreTracing::updateSearchingLvl(double searchingLvl)
 {
     //destroyMap();
     //initMap();
-    for (int i=0; i<this->Map_width; i++)
+    for (int i=0; i<Map_width; i++)
     {
-        for (int j=0; j<this->Map_width; j++)
+        for (int j=0; j<Map_width; j++)
         {
-                this->Map_mtrx[i][j]=false;
+                Map_mtrx[i][j]=false;
         }
     }
     // Присвоение элементов, соответствующих исследуемой матрице
-    for (int i=0; i<this->Map_width-2; i++)
+    for (int i=0; i<Map_width-2; i++)
     {
-        for (int j=0; j<this->Map_height-2; j++)
+        for (int j=0; j<Map_height-2; j++)
         {
-            if (this->baseMtrx[i][j]>=searchingLvl)
+            if (baseMtrx[i][j]>=searchingLvl)
             {
-                this->Map_mtrx[i+1][j+1]=true;
+                Map_mtrx[i+1][j+1]=true;
             }else{
-                this->Map_mtrx[i+1][j+1]=false;
+                Map_mtrx[i+1][j+1]=false;
             }
         }
     }
@@ -95,13 +146,97 @@ int MooreTracing::updateSearchingLvl(double searchingLvl)
 }
 */
 
-///Поиск нового контура, входной параметр - удалить или сохранить полость из зоны поиска, возвращает значение нашел контур или нет
+
+//=====================================================================
+///=================1.Поиск новой стартовой точки======================
+//=====================================================================
+
+/// Поиск новой точки входа в цикл поиска, возвращает значение нашел/не нашел
+bool MooreTracing::locateNewStartForScanning()
+{
+    //printMtrx();
+
+    int X = prevX0;
+    int Y = prevY0;
+    if (X >= (Map_width - 2) )  // -_______0-
+    {
+        X = 0;
+        Y++  ;
+    }
+
+    bool pointIsNotFound = true;
+
+    //сначала закончим сканирование по координате X, при этом Y фиксирован
+    do{
+        X++;
+        //if(Map_mtrx_upd[X][Y])
+        if(Map_mtrx[X][Y])
+        {
+            pointIsNotFound = false;
+            prevX0 = X;
+            prevY0 = Y;
+        }
+    }while(pointIsNotFound && (X < (Map_width - 1)));
+
+    //
+    if(pointIsNotFound)
+    {
+      do{ //сканирование по Y
+          X = 0;
+          Y++  ;
+          do{ //сканирование по X
+              X++;
+              if(Map_mtrx[X][Y])
+              {
+                  pointIsNotFound = false;
+                  prevX0 = X;
+                  prevY0 = Y;
+              }
+          }while(pointIsNotFound && (X < (Map_width - 1)) );//&& (Y < (Map_height - 1))требуется правка
+      }while(pointIsNotFound &&  (Y < (Map_height - 1)));//(X < (Map_width - 1)) &&
+    }
+    return !pointIsNotFound;
+}
+
+//=====================================================================
+///========================2.Поиск контура=============================
+//=====================================================================
+
+/// Поиск нового контура, входной параметр - удалить или сохранить полость из зоны поиска,
+///  возвращает значение нашел контур или нет
 bool MooreTracing::traceNewObj(bool clearCavities)
 {
     bool NewTraceFound;
     if (locateNewStartForScanning())  //Просканировать матрицу на наличие объектов
-    {   NewTraceFound = true;         //Найден объект
-        startTracing();               //Поиск контура объекта
+    {
+        //Найден объект
+        NewTraceFound = true;
+
+        //Поиск контура объекта
+
+
+        startTracing(Map_mtrx,prevX0,prevY0,prevX0-1,prevY0);
+
+       // При необходимости поиска полостей, нужно доконтурить объект
+       if (!clearCavities){
+           int startX = newTraceX[1];
+           int startY = newTraceY[1];
+           int inp_prevX = newTraceX[0];
+           int inp_prevY = newTraceY[0];
+
+           setNeighborhood(startX,startY,inp_prevX,inp_prevY);
+           traceNeighborhood(Map_mtrx_const);
+          // setNeighborhood(startX,startY,inp_prevX,inp_prevY);
+          // traceNeighborhood(Map_mtrx_const);
+
+           startX = consX;
+           startY = consY;
+           inp_prevX = prevX;
+           inp_prevY = prevY;
+
+           startTracing(Map_mtrx_const,startX,startY,inp_prevX,inp_prevY);
+       }
+
         clearArea(clearCavities);     //Удаление объекта из матрицы
 
        /* std::cout << '\n';
@@ -114,53 +249,68 @@ bool MooreTracing::traceNewObj(bool clearCavities)
     return NewTraceFound;
 }
 
-///Поиск новой точки входа в цикл поиска, возвращает значение нашел/не нашел
-bool MooreTracing::locateNewStartForScanning()
+/// Поиск внешнего контура
+void MooreTracing::startTracing(std::vector<std::vector<bool>>& SearchingMap_mtrx,int startX, int startY,int inp_prevX, int inp_prevY)
 {
-    //printMtrx();
+    clearTrace(); // при повторном считывании следует обнулить контур
 
-    int X = this->prevX0;
-    int Y = this->prevY0;
-    if (X >= (this->Map_width - 2) )  // -_______0-
+    consX = startX;
+    consY = startY;
+    newTraceX.push_back(consX);
+    newTraceY.push_back(consY);
+
+    TraceXmin=startX;
+    TraceXmax=startX;
+    TraceYmin=startY;
+    TraceYmax=startY;
+
+   // int traceSize = 0;
+   // std::cout<<newTraceX.size() << '\n';
+   // std::cout<<"X,Y = " << newTraceX[traceSize] << "  " << newTraceY[traceSize] << std::endl;
+
+    setNeighborhood(startX,startY,inp_prevX, inp_prevY);
+
+    if (testNeighborhood()) return; // Если точка одна в котуре - возврат
+
+    traceNeighborhood(SearchingMap_mtrx);
+    newTraceX.push_back(consX);
+    newTraceY.push_back(consY);
+    updateLimits();
+
+   // traceSize++;
+   // std::cout<<newTraceX.size() << '\n';
+   // std::cout<<"X,Y = " << newTraceX[traceSize] << "  " << newTraceY[traceSize] << std::endl;
+    int attempt=1;
+    int I[3]{};
+    while(attempt<=2)
     {
-        X = 0;
-        Y++  ;
-    }
+        setNeighborhood(consX,consY,prevX,prevY);
+        traceNeighborhood(SearchingMap_mtrx);
+        newTraceX.push_back(consX);
+        newTraceY.push_back(consY);
+        updateLimits();
 
-    bool pointIsNotFound = true;
-
-    //сначала закончим сканирование по координате X, при этом Y фиксирован
-    do{
-        X++;
-        if(this->Map_mtrx[X][Y])
+        if(((newTraceX[0] == consX) && (newTraceY[0] == consY)))
         {
-            pointIsNotFound = false;
-            this->prevX0 = X;
-            this->prevY0 = Y;
+            I[attempt]=newTraceX.size()-1;
+            attempt++;
         }
-    }while(pointIsNotFound && (X < (this->Map_width - 1)));
-
-    //
-    if(pointIsNotFound)
-    {
-      do{ //сканирование по Y
-          X = 0;
-          Y++  ;
-          do{ //сканирование по X
-              X++;
-              if(this->Map_mtrx[X][Y])
-              {
-                  pointIsNotFound = false;
-                  this->prevX0 = X;
-                  this->prevY0 = Y;
-              }
-          }while(pointIsNotFound && (X < (this->Map_width - 1)) );//&& (Y < (this->Map_height - 1))требуется правка
-      }while(pointIsNotFound &&  (Y < (this->Map_height - 1)));//(X < (this->Map_width - 1)) &&
+    //    traceSize++;
+    //    std::cout<<newTraceX.size() << '\n';
+    //    std::cout<<"X,Y = " << newTraceX.at(traceSize) << "  " << newTraceY.at(traceSize) << std::endl;
     }
-    return !pointIsNotFound;
+
+    if((newTraceX[I[0]+1] == newTraceX[I[1]+1]) &&
+       (newTraceY[I[0]+1] == newTraceY[I[1]+1]) &&
+       (newTraceX[I[0]+2] == newTraceX[I[1]+2]) &&
+       (newTraceY[I[0]+2] == newTraceY[I[1]+2]) )
+    {
+        newTraceX.resize(I[1]+1);
+        newTraceY.resize(I[1]+1);
+    }
 }
 
-///Задать точки соседства, начиная с предыдущей исследованной
+/// Задать точки соседства, начиная с предыдущей исследованной
 void MooreTracing::setNeighborhood(int consX,int consY,int prevX,int prevY)
 {
     int N = consY + 1; // СЕВЕР
@@ -175,288 +325,298 @@ void MooreTracing::setNeighborhood(int consX,int consY,int prevX,int prevY)
     {
         if(consY == prevY)       //prev  E, next NE
         {
-            this->MooreNeibours_Y[0] = keepY;
-            this->MooreNeibours_X[0] = E;
+            MooreNeibours_Y[0] = keepY;
+            MooreNeibours_X[0] = E;
 
-            this->MooreNeibours_Y[1] = N;
-            this->MooreNeibours_X[1] = E;
+            MooreNeibours_Y[1] = N;
+            MooreNeibours_X[1] = E;
 
-            this->MooreNeibours_Y[2] = N;
-            this->MooreNeibours_X[2] = keepX;
+            MooreNeibours_Y[2] = N;
+            MooreNeibours_X[2] = keepX;
 
-            this->MooreNeibours_Y[3] = N;
-            this->MooreNeibours_X[3] = W;
+            MooreNeibours_Y[3] = N;
+            MooreNeibours_X[3] = W;
 
-            this->MooreNeibours_Y[4] = keepY;
-            this->MooreNeibours_X[4] = W;
+            MooreNeibours_Y[4] = keepY;
+            MooreNeibours_X[4] = W;
 
-            this->MooreNeibours_Y[5] = S;
-            this->MooreNeibours_X[5] = W;
+            MooreNeibours_Y[5] = S;
+            MooreNeibours_X[5] = W;
 
-            this->MooreNeibours_Y[6] = S;
-            this->MooreNeibours_X[6] = keepX;
+            MooreNeibours_Y[6] = S;
+            MooreNeibours_X[6] = keepX;
 
-            this->MooreNeibours_Y[7] = S;
-            this->MooreNeibours_X[7] = E;
+            MooreNeibours_Y[7] = S;
+            MooreNeibours_X[7] = E;
 
 
         }else if (consY > prevY) //prev SE, next  E
-        {            
-            this->MooreNeibours_Y[0] = S;
-            this->MooreNeibours_X[0] = E;
+        {
+            MooreNeibours_Y[0] = S;
+            MooreNeibours_X[0] = E;
 
-            this->MooreNeibours_Y[1] = keepY;
-            this->MooreNeibours_X[1] = E;
+            MooreNeibours_Y[1] = keepY;
+            MooreNeibours_X[1] = E;
 
-            this->MooreNeibours_Y[2] = N;
-            this->MooreNeibours_X[2] = E;
+            MooreNeibours_Y[2] = N;
+            MooreNeibours_X[2] = E;
 
-            this->MooreNeibours_Y[3] = N;
-            this->MooreNeibours_X[3] = keepX;
+            MooreNeibours_Y[3] = N;
+            MooreNeibours_X[3] = keepX;
 
-            this->MooreNeibours_Y[4] = N;
-            this->MooreNeibours_X[4] = W;
+            MooreNeibours_Y[4] = N;
+            MooreNeibours_X[4] = W;
 
-            this->MooreNeibours_Y[5] = keepY;
-            this->MooreNeibours_X[5] = W;
+            MooreNeibours_Y[5] = keepY;
+            MooreNeibours_X[5] = W;
 
-            this->MooreNeibours_Y[6] = S;
-            this->MooreNeibours_X[6] = W;
+            MooreNeibours_Y[6] = S;
+            MooreNeibours_X[6] = W;
 
-            this->MooreNeibours_Y[7] = S;
-            this->MooreNeibours_X[7] = keepX;
+            MooreNeibours_Y[7] = S;
+            MooreNeibours_X[7] = keepX;
 
 
         }else if (consY < prevY) //prev NE, next N
         {
-            this->MooreNeibours_Y[0] = N;
-            this->MooreNeibours_X[0] = E;
+            MooreNeibours_Y[0] = N;
+            MooreNeibours_X[0] = E;
 
-            this->MooreNeibours_Y[1] = N;
-            this->MooreNeibours_X[1] = keepX;
+            MooreNeibours_Y[1] = N;
+            MooreNeibours_X[1] = keepX;
 
-            this->MooreNeibours_Y[2] = N;
-            this->MooreNeibours_X[2] = W;
+            MooreNeibours_Y[2] = N;
+            MooreNeibours_X[2] = W;
 
-            this->MooreNeibours_Y[3] = keepY;
-            this->MooreNeibours_X[3] = W;
+            MooreNeibours_Y[3] = keepY;
+            MooreNeibours_X[3] = W;
 
-            this->MooreNeibours_Y[4] = S;
-            this->MooreNeibours_X[4] = W;
+            MooreNeibours_Y[4] = S;
+            MooreNeibours_X[4] = W;
 
-            this->MooreNeibours_Y[5] = S;
-            this->MooreNeibours_X[5] = keepX;
+            MooreNeibours_Y[5] = S;
+            MooreNeibours_X[5] = keepX;
 
-            this->MooreNeibours_Y[6] = S;
-            this->MooreNeibours_X[6] = E;
+            MooreNeibours_Y[6] = S;
+            MooreNeibours_X[6] = E;
 
-            this->MooreNeibours_Y[7] = keepY;
-            this->MooreNeibours_X[7] = E;
+            MooreNeibours_Y[7] = keepY;
+            MooreNeibours_X[7] = E;
         }
     }else if (consX == prevX) //0
     {
         if (consY > prevY)       //prev S , next SE
         {
-            this->MooreNeibours_Y[0] = S;
-            this->MooreNeibours_X[0] = keepX;
+            MooreNeibours_Y[0] = S;
+            MooreNeibours_X[0] = keepX;
 
-            this->MooreNeibours_Y[1] = S;
-            this->MooreNeibours_X[1] = E;
+            MooreNeibours_Y[1] = S;
+            MooreNeibours_X[1] = E;
 
-            this->MooreNeibours_Y[2] = keepY;
-            this->MooreNeibours_X[2] = E;
+            MooreNeibours_Y[2] = keepY;
+            MooreNeibours_X[2] = E;
 
-            this->MooreNeibours_Y[3] = N;
-            this->MooreNeibours_X[3] = E;
+            MooreNeibours_Y[3] = N;
+            MooreNeibours_X[3] = E;
 
-            this->MooreNeibours_Y[4] = N;
-            this->MooreNeibours_X[4] = keepX;
+            MooreNeibours_Y[4] = N;
+            MooreNeibours_X[4] = keepX;
 
-            this->MooreNeibours_Y[5] = N;
-            this->MooreNeibours_X[5] = W;
+            MooreNeibours_Y[5] = N;
+            MooreNeibours_X[5] = W;
 
-            this->MooreNeibours_Y[6] = keepY;
-            this->MooreNeibours_X[6] = W;
+            MooreNeibours_Y[6] = keepY;
+            MooreNeibours_X[6] = W;
 
-            this->MooreNeibours_Y[7] = S;
-            this->MooreNeibours_X[7] = W;
+            MooreNeibours_Y[7] = S;
+            MooreNeibours_X[7] = W;
 
         }else if (consY < prevY) //prev N , next NW
-        {            
-            this->MooreNeibours_Y[0] = N;
-            this->MooreNeibours_X[0] = keepX;
+        {
+            MooreNeibours_Y[0] = N;
+            MooreNeibours_X[0] = keepX;
 
-            this->MooreNeibours_Y[1] = N;
-            this->MooreNeibours_X[1] = W;
+            MooreNeibours_Y[1] = N;
+            MooreNeibours_X[1] = W;
 
-            this->MooreNeibours_Y[2] = keepY;
-            this->MooreNeibours_X[2] = W;
+            MooreNeibours_Y[2] = keepY;
+            MooreNeibours_X[2] = W;
 
-            this->MooreNeibours_Y[3] = S;
-            this->MooreNeibours_X[3] = W;
+            MooreNeibours_Y[3] = S;
+            MooreNeibours_X[3] = W;
 
-            this->MooreNeibours_Y[4] = S;
-            this->MooreNeibours_X[4] = keepX;
+            MooreNeibours_Y[4] = S;
+            MooreNeibours_X[4] = keepX;
 
-            this->MooreNeibours_Y[5] = S;
-            this->MooreNeibours_X[5] = E;
+            MooreNeibours_Y[5] = S;
+            MooreNeibours_X[5] = E;
 
-            this->MooreNeibours_Y[6] = keepY;
-            this->MooreNeibours_X[6] = E;
+            MooreNeibours_Y[6] = keepY;
+            MooreNeibours_X[6] = E;
 
-            this->MooreNeibours_Y[7] = N;
-            this->MooreNeibours_X[7] = E;
+            MooreNeibours_Y[7] = N;
+            MooreNeibours_X[7] = E;
         }
     }else if (consX < prevX) //W
     {
         if ( consY == prevY)     //prev W , next SW
         {
-            this->MooreNeibours_Y[0] = keepY;
-            this->MooreNeibours_X[0] = W;
+            MooreNeibours_Y[0] = keepY;
+            MooreNeibours_X[0] = W;
 
-            this->MooreNeibours_Y[1] = S;
-            this->MooreNeibours_X[1] = W;
+            MooreNeibours_Y[1] = S;
+            MooreNeibours_X[1] = W;
 
-            this->MooreNeibours_Y[2] = S;
-            this->MooreNeibours_X[2] = keepX;
+            MooreNeibours_Y[2] = S;
+            MooreNeibours_X[2] = keepX;
 
-            this->MooreNeibours_Y[3] = S;
-            this->MooreNeibours_X[3] = E;
+            MooreNeibours_Y[3] = S;
+            MooreNeibours_X[3] = E;
 
-            this->MooreNeibours_Y[4] = keepY;
-            this->MooreNeibours_X[4] = E;
+            MooreNeibours_Y[4] = keepY;
+            MooreNeibours_X[4] = E;
 
-            this->MooreNeibours_Y[5] = N;
-            this->MooreNeibours_X[5] = E;
+            MooreNeibours_Y[5] = N;
+            MooreNeibours_X[5] = E;
 
-            this->MooreNeibours_Y[6] = N;
-            this->MooreNeibours_X[6] = keepX;
+            MooreNeibours_Y[6] = N;
+            MooreNeibours_X[6] = keepX;
 
-            this->MooreNeibours_Y[7] = N;
-            this->MooreNeibours_X[7] = W;
+            MooreNeibours_Y[7] = N;
+            MooreNeibours_X[7] = W;
 
         }else if (consY > prevY) //prev SW, next S
         {
-            this->MooreNeibours_Y[0] = S;
-            this->MooreNeibours_X[0] = W;
+            MooreNeibours_Y[0] = S;
+            MooreNeibours_X[0] = W;
 
-            this->MooreNeibours_Y[1] = S;
-            this->MooreNeibours_X[1] = keepX;
+            MooreNeibours_Y[1] = S;
+            MooreNeibours_X[1] = keepX;
 
-            this->MooreNeibours_Y[2] = S;
-            this->MooreNeibours_X[2] = E;
+            MooreNeibours_Y[2] = S;
+            MooreNeibours_X[2] = E;
 
-            this->MooreNeibours_Y[3] = keepY;
-            this->MooreNeibours_X[3] = E;
+            MooreNeibours_Y[3] = keepY;
+            MooreNeibours_X[3] = E;
 
-            this->MooreNeibours_Y[4] = N;
-            this->MooreNeibours_X[4] = E;
+            MooreNeibours_Y[4] = N;
+            MooreNeibours_X[4] = E;
 
-            this->MooreNeibours_Y[5] = N;
-            this->MooreNeibours_X[5] = keepX;
+            MooreNeibours_Y[5] = N;
+            MooreNeibours_X[5] = keepX;
 
-            this->MooreNeibours_Y[6] = N;
-            this->MooreNeibours_X[6] = W;
+            MooreNeibours_Y[6] = N;
+            MooreNeibours_X[6] = W;
 
-            this->MooreNeibours_Y[7] = keepY;
-            this->MooreNeibours_X[7] = W;
+            MooreNeibours_Y[7] = keepY;
+            MooreNeibours_X[7] = W;
 
         }else if (consY < prevY) //prev NW, next  W
         {
-            this->MooreNeibours_Y[0] = N;
-            this->MooreNeibours_X[0] = W;
+            MooreNeibours_Y[0] = N;
+            MooreNeibours_X[0] = W;
 
-            this->MooreNeibours_Y[1] = keepY;
-            this->MooreNeibours_X[1] = W;
+            MooreNeibours_Y[1] = keepY;
+            MooreNeibours_X[1] = W;
 
-            this->MooreNeibours_Y[2] = S;
-            this->MooreNeibours_X[2] = W;
+            MooreNeibours_Y[2] = S;
+            MooreNeibours_X[2] = W;
 
-            this->MooreNeibours_Y[3] = S;
-            this->MooreNeibours_X[3] = keepX;
+            MooreNeibours_Y[3] = S;
+            MooreNeibours_X[3] = keepX;
 
-            this->MooreNeibours_Y[4] = S;
-            this->MooreNeibours_X[4] = E;
+            MooreNeibours_Y[4] = S;
+            MooreNeibours_X[4] = E;
 
-            this->MooreNeibours_Y[5] = keepY;
-            this->MooreNeibours_X[5] = E;
+            MooreNeibours_Y[5] = keepY;
+            MooreNeibours_X[5] = E;
 
-            this->MooreNeibours_Y[6] = N;
-            this->MooreNeibours_X[6] = E;
+            MooreNeibours_Y[6] = N;
+            MooreNeibours_X[6] = E;
 
-            this->MooreNeibours_Y[7] = N;
-            this->MooreNeibours_X[7] = keepX;
+            MooreNeibours_Y[7] = N;
+            MooreNeibours_X[7] = keepX;
+        }
+    }
+}
+
+/// Проверка окрестностей, р-т 1 = точка-одиночка / 0 = точка не однаж
+bool MooreTracing::testNeighborhood()
+{
+    bool isASinglePoint = true;
+    int i=-1;
+
+    while(isASinglePoint && (i<7)) //i=-1 0 1 2 3 4 5 6
+    {
+        i++;                       //i= 0 1 2 3 4 5 6 7
+        if(Map_mtrx[MooreNeibours_X[i]][MooreNeibours_Y[i]])
+        {
+            isASinglePoint = false;
         }
     }
 
+    return isASinglePoint;
 }
 
-///Проверка окрестностей, р-т 1 = точка-одиночка / 0 = точка не однаж
-bool MooreTracing::testNeighborhood()
-{ bool isASinglePoint = true;
-  int i=-1;
+/// Поиск новой точки в окрестностях известной
+void MooreTracing::traceNeighborhood(std::vector<std::vector<bool>>& SearchingMap_mtrx)
+{
+    bool isASinglePoint = true;
+    int i=0;
 
-  while(isASinglePoint && (i<7)) //i=-1 0 1 2 3 4 5 6
-  {
-      i++;                       //i= 0 1 2 3 4 5 6 7
-      if(this->Map_mtrx[this->MooreNeibours_X[i]][this->MooreNeibours_Y[i]])
-      {
-          isASinglePoint = false;
-      }
-  }
-
-
-
-  return isASinglePoint;
+    while(isASinglePoint && (i<7)) //i= 0 1 2 3 4 5 6
+    {
+        i++;                       //i= 1 2 3 4 5 6 7
+        if(SearchingMap_mtrx[MooreNeibours_X[i]][MooreNeibours_Y[i]])
+        {
+            isASinglePoint = false;
+            prevX =MooreNeibours_X[i-1];// consX;
+            prevY =MooreNeibours_Y[i-1];// consY;
+            consX=MooreNeibours_X[i];
+            consY=MooreNeibours_Y[i];
+        }
+    }
 }
 
-///Поиск новой точки в окрестностях известной
-void MooreTracing::traceNeighborhood()
-{ bool isASinglePoint = true;
-  int i=0;
+//=====================================================================
+///=======================3.Очиска контура=============================
+//=====================================================================
 
-  while(isASinglePoint && (i<7)) //i= 0 1 2 3 4 5 6
-  {
-      i++;                       //i= 1 2 3 4 5 6 7
-      if(this->Map_mtrx[this->MooreNeibours_X[i]][this->MooreNeibours_Y[i]])
-      {
-          isASinglePoint = false;
-          this->prevX =this->MooreNeibours_X[i-1];// this->consX;
-          this->prevY =this->MooreNeibours_Y[i-1];// this->consY;
-          this->consX=this->MooreNeibours_X[i];
-          this->consY=this->MooreNeibours_Y[i];
-      }
-  }
+/// Поиск диапазона значений координат контура
+void MooreTracing::updateLimits()
+{
+    // поиск диапазона значений X
+    if(consX < TraceXmin)
+    {
+        TraceXmin = consX;
+    }else if (consX > TraceXmax)
+    {
+         TraceXmax = consX;
+    }
 
-//  if (isASinglePoint) // i = 6
-//  {
-//      i++; // i = 7
-//      if(this->Map_mtrx[this->MooreNeibours_X[i]][this->MooreNeibours_Y[i]])
-//      {
-//          isASinglePoint = false;
-//          this->prevX = this->consX;
-//          this->prevY = this->consY;
-//          this->consX=this->MooreNeibours_X[i];
-//          this->consY=this->MooreNeibours_Y[i];
-//      }
-//  }
-
+    // поиск диапазона значений Y
+    if(consY < TraceYmin)
+    {
+        TraceYmin = consY;
+    }else if (consY > TraceYmax)
+    {
+         TraceYmax = consY;
+    }
 }
-
 
 ///Очистить матрицу от исследованной области
 void MooreTracing::clearArea(bool clearCavities)
 {
-    unsigned int len = this->newTraceX.size();
+    unsigned int len = newTraceX.size();
 
-    int Xmin = this->TraceXmin;
-    int Xmax = this->TraceXmax;
+    int Xmin = TraceXmin;
+    int Xmax = TraceXmax;
 
     //избавление матрицы от самого контура, чтобы избавиться от одиночек и поиск диапазона значений X
     for (unsigned int i=0; i< len; i++)
     {
         //избавление матрицы от самого контура, чтобы избавиться от одиночек и горизонтальных линий
-        this->Map_mtrx[this->newTraceX[i]][this->newTraceY[i]]=false;
+        Map_mtrx[newTraceX[i]][newTraceY[i]]=false;
     }
 
     //на случай, если точек меньше 3 - выход из функции
@@ -464,27 +624,27 @@ void MooreTracing::clearArea(bool clearCavities)
         return;
     }
 
-    //если область шире
+    //если область шире:
 
     //задаем массив узлов области по списку координат (двумерный)
     std::vector<std::vector<int>> IndexList((Xmax-Xmin+1), std::vector<int>());
     int sgnNext, sgnPrev; //знаки справа и слева от точки (позволяет отделить ветикальные линии и точки
 
-    sgnNext = this->newTraceX[1] - this->newTraceX[0];
-    sgnPrev = this->newTraceX[len-2] - this->newTraceX[0];
+    sgnNext = newTraceX[1] - newTraceX[0];
+    sgnPrev = newTraceX[len-2] - newTraceX[0];
 
-    if ((sgnNext != sgnPrev))  // РАЗНЫЙ ЗНАК ОЗНАЧАЕТ ТОЧКУ ПОВОРОТА. ОДИНАКОВЫЙ - ГОРИЗОНТАЛЬ И ТОЧКИ. ТОЧКИ УЖЕ ИСКЛЮЧИЛИ
+    if ((sgnNext != sgnPrev)||((sgnNext == 0) && (sgnPrev == 0)))  // РАЗНЫЙ ЗНАК ОЗНАЧАЕТ ТОЧКУ ПОВОРОТА. ОДИНАКОВЫЙ - ВЕРТИКАЛЬ И ТОЧКИ. ТОЧКИ УЖЕ ИСКЛЮЧИЛИ
     {
-        IndexList[this->newTraceX[0] - Xmin].push_back(0);
+        IndexList[newTraceX[0] - Xmin].push_back(0);
     }
     for (unsigned int i=1; i< len-1; i++)
     {
-        sgnNext = this->newTraceX[i+1] - this->newTraceX[i];
-        sgnPrev = this->newTraceX[i-1] - this->newTraceX[i];
+        sgnNext = newTraceX[i+1] - newTraceX[i];
+        sgnPrev = newTraceX[i-1] - newTraceX[i];
 
-        if ((sgnNext != sgnPrev))  // РАЗНЫЙ ЗНАК ОЗНАЧАЕТ ТОЧКУ ПОВОРОТА. ОДИНАКОВЫЙ - ГОРИЗОТАЛЬ И ТОЧКИ. ТОЧКИ УЖЕ ИСКЛЮЧИЛИ
+        if ((sgnNext != sgnPrev)||((sgnNext == 0) && (sgnPrev == 0)))  // РАЗНЫЙ ЗНАК ОЗНАЧАЕТ ТОЧКУ ПОВОРОТА. ОДИНАКОВЫЙ - ВЕРТИКАЛЬ И ТОЧКИ. ТОЧКИ УЖЕ ИСКЛЮЧИЛИ
         {
-            IndexList[this->newTraceX[i] - Xmin].push_back(i);
+            IndexList[newTraceX[i] - Xmin].push_back(i);
         }
     }
 
@@ -502,21 +662,21 @@ void MooreTracing::clearArea(bool clearCavities)
                 continue;//на случай если узел был одинокой точкой
             }
 
-            cXval = this->newTraceX[IndexList[I][0]]; //текущая кордината Х
+            cXval = newTraceX[IndexList[I][0]]; //текущая кордината Х
             YvalSize=IndexList[I].size();             //количество узлов для заданного Х
 
             do{
                 notSorted = false;
                 for(int j = 0; j < YvalSize - 1; j++)
                 {
-                    if(this->newTraceY[IndexList[I][j]] > this->newTraceY[IndexList[I][j + 1]])
+                    if(newTraceY[IndexList[I][j]] > newTraceY[IndexList[I][j + 1]])
                     {
                         // меняем элементы местами
                         buffY = IndexList[I][j];
                         IndexList[I][j] = IndexList[I][j + 1];
                         IndexList[I][j + 1] = buffY;
                         notSorted=true;
-                    }else if (this->newTraceY[IndexList[I][j]] == this->newTraceY[IndexList[I][j + 1]])
+                    }else if (newTraceY[IndexList[I][j]] == newTraceY[IndexList[I][j + 1]])
                     {
                         //iter=IndexList[I].end();
                         IndexList[I][j + 1] = IndexList[I][YvalSize-1];
@@ -530,14 +690,15 @@ void MooreTracing::clearArea(bool clearCavities)
             //удаление точек
             for(int J=0;J<YvalSize-1;J++)
             {
-                cYval = this->newTraceY[IndexList[I][J]];
-                cYval2 = this->newTraceY[IndexList[I][J+1]];
+                cYval = newTraceY[IndexList[I][J]];
+                cYval2 = newTraceY[IndexList[I][J+1]];
 
-                if(( (cYval+1) < cYval2) && !(this->Map_mtrx[cXval][cYval-1])) // внутри
+                if(( (cYval+1) < cYval2) && !(Map_mtrx[cXval][cYval-1])) // внутри
                 {
                     for (int K=cYval+1;K < cYval2; K++)
                     {
-                        this->Map_mtrx[cXval][K]=false;
+                        //Map_mtrx_upd[cXval][K]=false;
+                        Map_mtrx[cXval][K]=false;
                     }
                 }
             }
@@ -547,7 +708,7 @@ void MooreTracing::clearArea(bool clearCavities)
         {
             if (IndexList[I].empty()) continue; //на случай если узел был одинокой точкой
 
-            cXval = this->newTraceX[IndexList[I][0]]; //текущая кордината Х
+            cXval = newTraceX[IndexList[I][0]]; //текущая кордината Х
             YvalSize=IndexList[I].size();             //количество узлов для заданного Х
 
 
@@ -555,14 +716,14 @@ void MooreTracing::clearArea(bool clearCavities)
                 notSorted = false;
                 for(int j = 0; j < YvalSize - 1; j++)
                 {
-                    if(this->newTraceY[IndexList[I][j]] > this->newTraceY[IndexList[I][j + 1]])
+                    if(newTraceY[IndexList[I][j]] > newTraceY[IndexList[I][j + 1]])
                     {
                         // меняем элементы местами
                         buffY = IndexList[I][j];
                         IndexList[I][j] = IndexList[I][j + 1];
                         IndexList[I][j + 1] = buffY;
                         notSorted=true;
-                    }else if (this->newTraceY[IndexList[I][j]] == this->newTraceY[IndexList[I][j + 1]])
+                    }else if (newTraceY[IndexList[I][j]] == newTraceY[IndexList[I][j + 1]])
                     {
                         //iter=IndexList[I].end();
                         IndexList[I][j + 1] = IndexList[I][YvalSize-1];
@@ -573,16 +734,17 @@ void MooreTracing::clearArea(bool clearCavities)
                 }
             }while(notSorted);
 
-            //удаление точек
+            // Удаление точек
             for(int J=0;J<YvalSize-1;J++) {
-                cYval = this->newTraceY[IndexList[I][J]];
-                cYval2 = this->newTraceY[IndexList[I][J+1]];
+                cYval = newTraceY[IndexList[I][J]];
+                cYval2 = newTraceY[IndexList[I][J+1]];
 
-                if(( (cYval+1) < cYval2) && !(this->Map_mtrx[cXval][cYval-1])) // внутри
+                if(( (cYval+1) < cYval2) && !(Map_mtrx[cXval][cYval-1])) // внутри
                 {
                     for (int K=cYval+1;K < cYval2; K++)
                     {
-                        this->Map_mtrx[cXval][K]=!(this->Map_mtrx[cXval][K]);
+                            //Map_mtrx_upd[cXval][K]=!(Map_mtrx[cXval][K]);
+                            Map_mtrx[cXval][K]=!(Map_mtrx[cXval][K]);
                     }
                 }
             }
@@ -592,165 +754,85 @@ void MooreTracing::clearArea(bool clearCavities)
         //Повторное избавление матрицы от самого контура
         for (unsigned int i=0; i< len; i++) {
             //избавление матрицы от самого контура, чтобы избавиться от одиночек и горизонтальных линий
-            this->Map_mtrx[this->newTraceX[i]][this->newTraceY[i]]=false;
+            Map_mtrx[newTraceX[i]][newTraceY[i]]=false;
         }
-}
-
-
-
-///Поиск внешнего контура
-void MooreTracing::startTracing()
-{
-    clearTrace(); // при повторном считывании следует обнулить контур
-
-    //locateNewStartForScanning(); // НЕ НУЖНО, ЭТА ФУНКЦИЯ СКАНИРУЕТ ПО УЖЕ НАЙДЕННОЙ ОБЛАСТИ
-
-    int startX= this->prevX0;
-    int startY= this->prevY0;
-    this->consX = startX;
-    this->consY = startY;
-
-    this->newTraceX.push_back(startX);
-    this->newTraceY.push_back(startY);
-
-    this->TraceXmin=startX;
-    this->TraceXmax=startX;
-    this->TraceYmin=startY;
-    this->TraceYmax=startY;
-   // int traceSize = 0;
-   // std::cout<<this->newTraceX.size() << '\n';
-   // std::cout<<"X,Y = " << this->newTraceX[traceSize] << "  " << this->newTraceY[traceSize] << std::endl;
-
-    setNeighborhood(startX,startY,startX-1,startY);
-
-    if (testNeighborhood()) return; // Если точка одна в котуре - возврат
-
-    traceNeighborhood();
-    this->newTraceX.push_back(this->consX);
-    this->newTraceY.push_back(this->consY);
-    updateLimits();
-
-   // traceSize++;
-   // std::cout<<this->newTraceX.size() << '\n';
-   // std::cout<<"X,Y = " << this->newTraceX[traceSize] << "  " << this->newTraceY[traceSize] << std::endl;
-    int attempt=1;
-    int I[3]{};
-    while(attempt<=2)
-    {
-        setNeighborhood(this->consX,this->consY,this->prevX,this->prevY);
-        traceNeighborhood();
-        this->newTraceX.push_back(this->consX);
-        this->newTraceY.push_back(this->consY);
-        updateLimits();
-
-        if(((this->newTraceX[0] == this->consX) && (this->newTraceY[0] == this->consY)))
-        {
-            I[attempt]=newTraceX.size()-1;
-            attempt++;
-        }
-    //    traceSize++;
-    //    std::cout<<this->newTraceX.size() << '\n';
-    //    std::cout<<"X,Y = " << this->newTraceX.at(traceSize) << "  " << this->newTraceY.at(traceSize) << std::endl;
-    }
-
-    if((this->newTraceX[I[0]+1] == this->newTraceX[I[1]+1]) &&
-       (this->newTraceY[I[0]+1] == this->newTraceY[I[1]+1]) &&
-       (this->newTraceX[I[0]+2] == this->newTraceX[I[1]+2]) &&
-       (this->newTraceY[I[0]+2] == this->newTraceY[I[1]+2]) )
-    {
-        newTraceX.resize(I[1]+1);
-        newTraceY.resize(I[1]+1);
-    }
-}
-
-///Сравнение величин и задание лимитов
-void MooreTracing::updateLimits()
-{
-    // поиск диапазона значений X
-    if(this->consX < this->TraceXmin)
-    {
-        this->TraceXmin = this->consX;
-    }else if (this->consX > this->TraceXmax)
-    {
-         this->TraceXmax = this->consX;
-    }
-
-    // поиск диапазона значений Y
-    if(this->consY < this->TraceYmin)
-    {
-        this->TraceYmin = this->consY;
-    }else if (this->consY > this->TraceYmax)
-    {
-         this->TraceYmax = this->consY;
-    }
 }
 
 /// Очистка векторов от данных
 void MooreTracing::clearTrace()
 {
-   // std::cout << "TraceSize = " << this->newTraceX.size() << std::endl;
+   // std::cout << "TraceSize = " << newTraceX.size() << std::endl;
 
-    this->newTraceX.clear();
-    this->newTraceY.clear();
+    newTraceX.clear();
+    newTraceY.clear();
 
-   // std::cout << "TraceSize = " << this->newTraceX.size() << std::endl;
-}
-
-std::vector<int> MooreTracing::getNewTraceX()
-{
-    int size =(this->newTraceX).size();
-    std::vector<int> res (size);
-    for (int i=0; i<size; i++)
-    {
-      res[i]=  (this->newTraceX)[i]-1;
-    }
-    return res;
-}
-std::vector<int> MooreTracing::getNewTraceY()
-{
-    int size =(this->newTraceY).size();
-     std::vector<int> res (size);
-     for (int i=0; i<size; i++)
-     {
-       res[i]=  (this->newTraceY)[i]-1;
-     }
-    return res;
-}
-int MooreTracing::getTraceXmin()
-{
-    return this->TraceXmin;
-}
-int MooreTracing::getTraceXmax()
-{
-    return this->TraceXmax;
-}
-int MooreTracing::getTraceYmin()
-{
-    return this->TraceYmin;
-}
-int MooreTracing::getTraceYmax()
-{
-    return this->TraceYmax;
+   // std::cout << "TraceSize = " << newTraceX.size() << std::endl;
 }
 
+
+//=====================================================================
+///======================4.Служебные функции===========================
+//=====================================================================
 void MooreTracing::printMtrx()
 {
-    int v;    
-    for (int j = 0; j < this->Map_height; j++)
+    int v;
+    for (int j = 0; j < Map_height; j++)
     {
         std::cout << std::endl;
-        for (int i = 0; i < this->Map_width; i++)
+        for (int i = 0; i < Map_width; i++)
         {
-            if (this->Map_mtrx[i][j] == true)
+            if (Map_mtrx[i][j] == true)
             {
                 v=1;
             }else{
                 v=0;
             }
-
-
             std::cout << v << "\t";
         }
-
     }
 }
+
+//=====================================================================
+///===========================5.Геттеры================================
+//=====================================================================
+
+std::vector<int> MooreTracing::getNewTraceX()
+{
+    int size =(newTraceX).size();
+    std::vector<int> res (size);
+    for (int i=0; i<size; i++)
+    {
+      res[i]=  (newTraceX)[i]-1;
+    }
+    return res;
+}
+std::vector<int> MooreTracing::getNewTraceY()
+{
+    int size =(newTraceY).size();
+     std::vector<int> res (size);
+     for (int i=0; i<size; i++)
+     {
+       res[i]=  (newTraceY)[i]-1;
+     }
+    return res;
+}
+
+
+int MooreTracing::getTraceXmin()
+{
+    return TraceXmin;
+}
+int MooreTracing::getTraceXmax()
+{
+    return TraceXmax;
+}
+int MooreTracing::getTraceYmin()
+{
+    return TraceYmin;
+}
+int MooreTracing::getTraceYmax()
+{
+    return TraceYmax;
+}
+
+

@@ -4,7 +4,7 @@
 #include <QMainWindow>
 #include <QSlider>
 #include <QLabel>
-//#include "dosedistribution.h"
+
 #include "DoseVector.h"
 #include <vector>
 #include <QThread>
@@ -32,10 +32,11 @@ private slots:
     ///===========Настройки окна приложения============
     //==================================================
 
+    void setLineValidators();
     void setSliders();
 
-    void legendDoubleClick(QCPLegend *legend, QCPAbstractLegendItem *item);
-    void axisLabelDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart part);
+    void toolIsSwitched(int tool);
+    void tabIsSwitched(int tool);
 
     //==================================================
     ///===============Работа с файлами==================
@@ -62,6 +63,14 @@ private slots:
     void updatePlane();
     void updateCurves();
 
+    void setCurveRange();
+    void resetCurveRange();
+
+    void legendDoubleClick(QCPLegend *legend, QCPAbstractLegendItem *item);
+    void axisLabelDoubleClick(QCPAxis *axis, QCPAxis::SelectablePart part);
+
+    void resetPointOfMaximum();
+
 
 private:
 
@@ -78,11 +87,6 @@ private:
     QRgb* colorList;
     void setColorPanels();
 
-    int planesWidthMultiplier = 1;
-    int planesHeightMultiplier = 1;
-    int curvesWidthMultiplier = 1;
-    int curvesHeightMultiplier = 1;
-    void setAxesSize(QCustomPlot* axes, int WidthMultiplier, int HeightMultiplier);
 
     //void changeAxesProportion(QCustomPlot* axes, int sizeX, int sizeY);
 
@@ -92,9 +96,13 @@ private:
 
     bool loadlock=false;
     void loadNewDoseFile(QString filename);
+
     bool DistributionIsSet = false;
     DoseVector DoseDistr;
-    int sizeX=100, sizeY=100, sizeZ=100;    // matrix dimentions
+    int sizeX = 100, sizeY = 100, sizeZ = 100;    // matrix dimentions
+    double doseMaxValue = 0;
+    std::tuple<int,int,int> doseMaxValPos = std::make_tuple(0,0,0);
+
 
 
     //==================================================
@@ -102,7 +110,7 @@ private:
     //==================================================
 
     int curvesMaximum=3;
-    void plotCurves();
+    //void plotCurves();
 
     int CMap();
 
@@ -111,6 +119,13 @@ private:
     int ISOdoses();
     std::vector<int> curveX;
     std::vector<int> curveY;
+
+    int planesWidthMultiplier = 1;
+    int planesHeightMultiplier = 1;
+    int curvesWidthMultiplier = 1;
+    int curvesHeightMultiplier = 1;
+    void setAxesSize(QCustomPlot* axes, int WidthMultiplier, int HeightMultiplier);
+
 
 };
 

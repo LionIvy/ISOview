@@ -41,8 +41,12 @@ DoseVector& DoseVector::operator=(const DoseVector &other){
     this->sizeX = other.sizeX;
     this->sizeY = other.sizeY;
     this->sizeZ = other.sizeZ;
-    this->DoseMaximum = other.DoseMaximum;
+    this->doseMaxValue = other.doseMaxValue;
     this->doseV = other.doseV;
+    this->maxValPosX = other.maxValPosX;
+    this->maxValPosY = other.maxValPosY;
+    this->maxValPosZ = other.maxValPosZ;
+
     return *this;
 }
 
@@ -105,11 +109,15 @@ void DoseVector::loadMatrixFromSRNAFile(QString fileName){
                 doseV[indx] = Dose;
                 if (Dose > Maximum){
                     Maximum = Dose;
+                    //maxValPos = (i,j,k);
+                    maxValPosX = i;
+                    maxValPosY = j;
+                    maxValPosZ = k;
                 }
             }
         }
     }
-    DoseMaximum=Maximum;
+    doseMaxValue=Maximum;
     newFile.close();
 }
 
@@ -144,15 +152,19 @@ void DoseVector::loadMatrixFromGEANT4File(QString fileName){
         doseV[indx] = Dose;
         if (Dose > Maximum){
             Maximum = Dose;
+            //maxValPos = std::make_tuple (x,y,z);
+            maxValPosX = x;
+            maxValPosY = y;
+            maxValPosZ = z;
         }
     }
-    DoseMaximum=Maximum;
+    doseMaxValue=Maximum;
 
     newFile.close();
 }
 
 double DoseVector::getDoseMaxValue(){
-    return DoseMaximum;
+    return doseMaxValue;
 }
 
 double DoseVector::getXSize(){
@@ -172,3 +184,8 @@ double DoseVector::element(int X, int Y, int Z){
     return doseV[indx];
 }
 
+std::tuple<int,int,int> DoseVector::getMaxValPosition()
+{
+    std::tuple<int,int,int> maxValPos = std::make_tuple(maxValPosX,maxValPosY,maxValPosZ);
+    return maxValPos;
+}
