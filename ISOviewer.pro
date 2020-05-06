@@ -17,7 +17,6 @@ DEFINES += QT_DEPRECATED_WARNINGS
 
 SOURCES += \
     DoseVector.cpp \
-    dosedistribution.cpp \
     main.cpp \
     mainwindow.cpp \
     mooretracing.cpp \
@@ -25,7 +24,6 @@ SOURCES += \
 
 HEADERS += \
     DoseVector.h \
-    dosedistribution.h \
     mainwindow.h \
     mooretracing.h \
     qcustomplot.h

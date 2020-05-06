@@ -1323,6 +1323,9 @@ int MainWindow::ISOdoses()
     int Yval = ui->Y_val->text().toInt();
     int Zval = ui->Z_val->text().toInt();
 
+//    if (Zval>=256){
+//        int stopIT=0;
+//    }
     //Условия нормировки
     int posX = ui->MaxVal_pointX->text().toInt();
     int posY = ui->MaxVal_pointY->text().toInt();
@@ -1510,7 +1513,7 @@ int MainWindow::ISOdoses()
     QVector<MooreTracing> isoCurve(N_lvls);
 
     //Сканирование по изодозам
-    for(int lvl=0; lvl<N_lvls-1;lvl++)
+    for(int lvl=0; lvl<N_lvls;lvl++)
     {
         isoCurve[lvl] = MooreTracing(planeMtrx,dirX,dirY,isodose_lvl_num[lvl]);
         PenStyle.setColor(colorList[lvl]);
@@ -1531,6 +1534,7 @@ int MainWindow::ISOdoses()
 
             curveID++;
             //ContourCounter++;
+            //qDebug() << newCurve.size() <<'\n';
 
             newCurve.push_back(new QCPCurve(ui -> Axes_plane ->xAxis, ui -> Axes_plane ->yAxis));
 
@@ -1552,10 +1556,13 @@ int MainWindow::ISOdoses()
             ui->Axes_plane->replot();
         }
     }
-
+/* /// Для последнего контура нужен поиск полостей, есть проблема по части динамической памяти.
+ /// Если полостей слишком много строчка
+ /// newCurve.push_back(new QCPCurve(ui -> Axes_plane ->xAxis, ui -> Axes_plane ->yAxis));
+ /// переполняет память -> вылет
     // Для последнего контура нужен поиск полостей
     {
-        int lvl=N_lvls;
+        int lvl=N_lvls-1;
 
         isoCurve[lvl] = MooreTracing(planeMtrx,dirX,dirY,isodose_lvl_num[lvl]);
         PenStyle.setColor(colorList[lvl]);
@@ -1576,7 +1583,7 @@ int MainWindow::ISOdoses()
 
             curveID++;
             //ContourCounter++;
-
+            qDebug() << newCurve.size() <<'\n';
             newCurve.push_back(new QCPCurve(ui -> Axes_plane ->xAxis, ui -> Axes_plane ->yAxis));
 
             xData.resize(curveLength);
@@ -1597,6 +1604,8 @@ int MainWindow::ISOdoses()
             ui->Axes_plane->replot();
         }
     }
+*/
+
 
     planeMtrx.clear();
 
