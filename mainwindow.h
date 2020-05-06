@@ -126,6 +126,9 @@ private:
     int curvesHeightMultiplier = 1;
     void setAxesSize(QCustomPlot* axes, int WidthMultiplier, int HeightMultiplier);
 
+    void showPointOfInterest();
+
+
 
 };
 

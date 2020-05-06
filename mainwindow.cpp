@@ -37,8 +37,8 @@ MainWindow::MainWindow(QWidget *parent)
     ui -> Axes_plane -> setInteractions(QCP::iRangeDrag | QCP::iRangeZoom | QCP::iSelectPlottables);
     ui -> Axes_curves-> setInteractions(QCP::iSelectPlottables);
    // ui -> Axes_curves-> setInteractions(QCP::iRangeDrag | QCP::iRangeZoom );
-    setAxesSize(ui->Axes_plane, 600, 600);
-    setAxesSize(ui->Axes_curves, 600, 600);
+    setAxesSize(ui->Axes_plane, 700, 700);
+    setAxesSize(ui->Axes_curves, 700, 700);
 
     QObject::connect(ui->Axes_curves, SIGNAL(axisDoubleClick(QCPAxis*,QCPAxis::SelectablePart,QMouseEvent*)),
                      this           , SLOT(axisLabelDoubleClick(QCPAxis*,QCPAxis::SelectablePart)));
@@ -53,7 +53,13 @@ MainWindow::MainWindow(QWidget *parent)
                      this       , SLOT  (toolIsSwitched(int)));
     QObject::connect(ui->tabGraphs, SIGNAL(currentChanged(int)),
                      this       , SLOT  (tabIsSwitched(int)));
-    }
+
+
+    ui -> Axes_plane -> addLayer("pointOfInterest",ui->Axes_plane->layer("main"), QCustomPlot::limAbove);
+
+
+
+
 
     QObject::connect(ui-> axXLim_min, SIGNAL(editingFinished()),
                      this           , SLOT(setCurveRange()));
@@ -82,7 +88,7 @@ MainWindow::MainWindow(QWidget *parent)
     QObject::connect(ui-> ValueAtPoint , SIGNAL(editingFinished()),
                      this               , SLOT(updatePlane()));
 
-
+    }
 
     //==================================================
     ///=========Инициализация работы слайдеров==========
@@ -934,7 +940,7 @@ void MainWindow::updatePlane()
 
     if (DistributionIsSet)
     {
-
+        ui -> Axes_plane  -> setCurrentLayer("main");
         //очистка осей от старых графиков
         ui -> Axes_plane->clearPlottables();
         ui -> Axes_plane -> clearItems();
@@ -1313,7 +1319,9 @@ int MainWindow::ISOCMap()
     ui -> Axes_plane -> xAxis->setLabel(xAxlabel);
     ui -> Axes_plane -> yAxis->setLabel(yAxlabel);
 
-    ui->Axes_plane->replot();
+    ui -> Axes_plane -> replot();
+
+    showPointOfInterest();
     return 0;
 }
 
@@ -1641,6 +1649,7 @@ int MainWindow::ISOdoses()
 
     ui->Axes_plane->axisRect()->setBackground(Qt::gray);
 
+    showPointOfInterest();
     ui->Axes_plane->replot();
 
     //ui->Axes_plane->setBackground(Qt::white);
@@ -1733,4 +1742,86 @@ void MainWindow::resetPointOfMaximum()
         updatePlane();
 
     }
+}
+
+void MainWindow::showPointOfInterest()
+{
+    if (!(ui->show_point_chB->isChecked())) return;
+
+    int Xval = ui->X_val->text().toInt();
+    int Yval = ui->Y_val->text().toInt();
+    int Zval = ui->Z_val->text().toInt();
+
+    int pointX = ui->MaxVal_pointX->text().toInt();
+    int pointY = ui->MaxVal_pointY->text().toInt();
+    int pointZ = ui->MaxVal_pointZ->text().toInt();
+
+    double ax_X, ax_Y;
+    double dx = 2.5;
+    double dy = 2.5;
+
+    if(ui->plane_XZ_rb->isChecked())
+    {
+        if (Yval!=pointY) return;
+
+        ax_X = pointZ+0.5;
+        ax_Y = pointX+0.5;
+
+    }else if(ui->plane_XY_rb->isChecked())
+    {
+        if (Zval!=pointZ) return;
+
+        ax_X = pointX+0.5;
+        ax_Y = pointY+0.5;
+
+    }else if(ui->plane_YZ_rb->isChecked())
+    {
+        if (Xval!=pointX) return;
+
+        ax_X = pointZ+0.5;
+        ax_Y = pointY+0.5;
+
+    }else return;
+
+    ui -> Axes_plane  -> setCurrentLayer("pointOfInterest");
+    ui -> Axes_plane  -> clearGraphs();
+
+    QPen pointPen;
+    pointPen.setColor(Qt::black);
+    pointPen.setWidth(3);
+    //pointPen.setWidthF(3);
+    pointPen.setStyle(Qt::DotLine);
+
+    QVector<double> x(2),y(2);
+
+    ui -> Axes_plane-> addGraph();
+    x[0]=ax_X-dx; y[0]=ax_Y+dy;
+    x[1]=ax_X+dx; y[1]=ax_Y-dy;
+    ui -> Axes_plane  -> graph(0)->setData(x, y);
+    ui -> Axes_plane-> graph(0)->setPen(pointPen);
+    ui -> Axes_plane-> replot();
+
+    ui -> Axes_plane-> addGraph();
+    x[0]=ax_X-dx; y[0]=ax_Y-dy;
+    x[1]=ax_X+dx; y[1]=ax_Y+dy;
+    ui -> Axes_plane-> graph(1)->setData(x, y);
+    ui -> Axes_plane-> graph(1)->setPen(pointPen);
+    ui -> Axes_plane-> replot();
+
+    ui -> Axes_plane-> addGraph();
+    x[0]=ax_X; y[0]=ax_Y+dy;
+    x[1]=ax_X; y[1]=ax_Y-dy;
+    ui -> Axes_plane-> graph(2)->setData(x, y);
+    ui -> Axes_plane-> graph(2)->setPen(pointPen);
+    ui -> Axes_plane-> replot();
+
+    ui -> Axes_plane-> addGraph();
+    x[0]=ax_X-dx; y[0]=ax_Y;
+    x[1]=ax_X+dx; y[1]=ax_Y;
+    ui -> Axes_plane-> graph(3)->setData(x, y);
+    ui -> Axes_plane-> graph(3)->setPen(pointPen);
+    ui -> Axes_plane-> replot();
+
+
+
 }
