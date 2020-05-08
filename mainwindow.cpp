@@ -55,7 +55,7 @@ MainWindow::MainWindow(QWidget *parent)
                      this       , SLOT  (tabIsSwitched(int)));
 
 
-    ui -> Axes_plane -> addLayer("pointOfInterest",ui->Axes_plane->layer("main"), QCustomPlot::limAbove);
+    ui -> Axes_plane -> addLayer("pointOfInterest",ui->Axes_plane->layer("main"), QCustomPlot::limBelow);
 
 
 
